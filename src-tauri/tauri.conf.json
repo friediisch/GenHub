@@ -1,0 +1,63 @@
+{
+	"build": {
+		"distDir": "../build",
+		"devPath": "http://localhost:9000",
+		"beforeDevCommand": "npm run dev:web",
+		"beforeBuildCommand": "npm run build:web"
+	},
+	"package": {
+		"productName": "GenHub"
+	},
+	"tauri": {
+		"bundle": {
+			"active": true,
+			"targets": ["dmg", "deb", "appimage", "msi"],
+			"identifier": "de.friediisch.genhub",
+			"icon": [
+				"icons/32x32.png",
+				"icons/128x128.png",
+				"icons/128x128@2x.png",
+				"icons/icon.icns",
+				"icons/icon.ico"
+			],
+			"resources": [],
+			"externalBin": [],
+			"copyright": "© 2024 GenHub",
+			"category": "Utility",
+			"shortDescription": "App for chat completions via API",
+			"longDescription": "App for chat completions via API",
+			"deb": {
+				"depends": []
+			},
+			"macOS": {
+				"frameworks": [],
+				"minimumSystemVersion": "10.13",
+				"exceptionDomain": "",
+				"signingIdentity": null,
+				"entitlements": null
+			},
+			"windows": {
+				"certificateThumbprint": null,
+				"digestAlgorithm": "sha256",
+				"timestampUrl": ""
+			}
+		},
+		"updater": {
+			"active": false
+		},
+		"allowlist": {
+			"dialog": {
+				"message": true
+			},
+			"notification": {
+				"all": true
+			},
+			"shell": {
+				"open": true
+			}
+		},
+		"security": {
+			"csp": "default-src 'self'; img-src *; style-src 'unsafe-inline' *"
+		}
+	}
+}
