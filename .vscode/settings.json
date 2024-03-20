@@ -1,0 +1,11 @@
+{
+	"editor.formatOnSave": true,
+	"[svelte]": {
+		"editor.defaultFormatter": "svelte.svelte-vscode"
+	},
+	"eslint.format.enable": true,
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": "always"
+	},
+	"rust-analyzer.linkedProjects": ["./src-tauri/Cargo.toml"]
+}

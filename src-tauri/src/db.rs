@@ -460,7 +460,7 @@ pub async fn load_chat(chat_id: String, data: DataState<'_>) -> Result<Vec<Messa
 				};
 			}
 
-			Ok(messages)
+			return Ok(messages);
 		}
 		Err(e) => {
 			eprintln!("Error fetching messages from database: {}", e);
@@ -507,7 +507,7 @@ pub async fn insert_message_blocks(
 			.execute(connection_pool)
 			.await;
 		match insert_message_blocks_query_result {
-			Ok(_) => {}
+			Ok(_) => (),
 			Err(e) => {
 				eprintln!("Error inserting message blocks into database: {}", e);
 			}
