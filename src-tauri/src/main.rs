@@ -4,9 +4,6 @@
 )]
 
 use crate::data::{AppPaths, ArcData, Data};
-use crate::settings::yt_email_notifier;
-use crate::settings::VersionedSettings;
-use data::UndoHistory;
 use tauri::api::{dialog, shell};
 #[cfg(target_os = "macos")]
 use tauri::AboutMetadata;
@@ -15,12 +12,9 @@ use tauri::{
 	WindowUrl,
 };
 
-mod api;
-mod background;
 mod data;
 mod db;
 mod providers;
-mod settings;
 mod utils;
 
 fn error_popup_main_thread(msg: impl AsRef<str>) {
@@ -50,39 +44,6 @@ fn error_popup(msg: String, win: Window) {
 		.show(|_button_press| {});
 }
 
-/// Note title and message to show asynchronously when/after the app starts
-type ImportedNote = Option<(String, String)>;
-
-/// This can display dialogs, which needs to happen before tauri runs to not panic
-async fn load_data(paths: &AppPaths) -> Result<(VersionedSettings, ImportedNote), String> {
-	if paths.settings_file.exists() {
-		return match settings::VersionedSettings::load(paths) {
-			Ok(settings) => Ok((settings, None)),
-			Err(e) => Err(e),
-		};
-	}
-
-	let will_import = match yt_email_notifier::can_import() {
-		true => rfd::MessageDialog::new()
-			.set_title("Import")
-			.set_description("Do you want to import your data from YouTube Email Notifier?")
-			.set_buttons(rfd::MessageButtons::YesNo)
-			.set_level(rfd::MessageLevel::Info)
-			.show(),
-		false => false,
-	};
-	if will_import {
-		let imported_stuff = yt_email_notifier::import()?;
-		let versioned_settings = imported_stuff.settings.wrap();
-		versioned_settings.save(paths)?;
-
-		let import_note = Some(("Import note".to_string(), imported_stuff.update_note));
-		return Ok((versioned_settings, import_note));
-	}
-
-	Ok((VersionedSettings::default(), None))
-}
-
 #[tokio::main]
 async fn main() {
 	#[cfg(debug_assertions)]
@@ -93,9 +54,6 @@ async fn main() {
 				providers::get_message,
 				db::get_chats,
 				db::load_chat,
-				db::get_videos,
-				db::archive,
-				db::unarchive,
 				db::load_providers,
 				db::set_api_keys,
 				db::get_models,
@@ -116,14 +74,6 @@ async fn main() {
 
 	let app_paths = AppPaths::from_tauri_config(ctx.config());
 
-	let (mut settings, _note) = match load_data(&app_paths).await {
-		Ok(v) => v,
-		Err(e) => {
-			error_popup_main_thread(&e);
-			panic!("{}", e);
-		}
-	};
-
 	let pool = match db::init(&app_paths).await {
 		Ok(pool) => pool,
 		Err(e) => {
@@ -138,9 +88,6 @@ async fn main() {
 			providers::get_message,
 			db::get_chats,
 			db::load_chat,
-			db::get_videos,
-			db::archive,
-			db::unarchive,
 			db::load_providers,
 			db::set_api_keys,
 			db::get_models,
@@ -184,19 +131,12 @@ async fn main() {
 			}
 
 			let data = Data {
-				bg_handle: background::spawn_bg(settings.unwrap(), &pool, win.clone()),
 				db_pool: pool,
-				versioned_settings: settings,
 				paths: app_paths,
 				window: win.clone(),
-				user_history: UndoHistory::new(),
 			};
 			app.manage(ArcData::new(data));
 
-			#[cfg(target_os = "macos")]
-			if let Some(note) = _note.clone() {
-				dialog::message(Option::Some(&win), note.0, note.1);
-			}
 			Ok(())
 		})
 		.menu(Menu::with_items([

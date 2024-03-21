@@ -26,18 +26,6 @@ export function loadChat(chatId: string) {
     return invoke()<Message[]>("load_chat", { chatId })
 }
 
-export function getVideos(options: Options, after: After | null) {
-    return invoke()<Video[]>("get_videos", { options,after })
-}
-
-export function archive(id: string) {
-    return invoke()<null>("archive", { id })
-}
-
-export function unarchive(id: string) {
-    return invoke()<null>("unarchive", { id })
-}
-
 export function loadProviders() {
     return invoke()<ProviderData[]>("load_providers")
 }
@@ -54,14 +42,11 @@ export function readApiKeysFromEnv() {
     return invoke()<null>("read_api_keys_from_env")
 }
 
-export type After = { publishTimeMs: number; id: string }
-export type MessageBlock = { type_: string; language: string | null; raw_content: string; rendered_content: string; copied: boolean | null }
-export type Models = { models: Model[] }
-export type Chats = { chats: Chat[] }
-export type ProviderData = { provider_name: string; api_key: string; display_name: string }
 export type Chat = { id: string; display_name: string; creation_date: string; last_updated: string }
 export type Model = { provider_name: string; model_name: string; model_display_name: string }
-export type MessageBlocks = { blocks: MessageBlock[] }
-export type Options = { show_all: boolean; show_archived: boolean; channel_filter: string; tag: string | null; limit: number }
+export type Models = { models: Model[] }
+export type MessageBlock = { type_: string; language: string | null; raw_content: string; rendered_content: string; copied: boolean | null }
 export type Message = { id: string; role: string; content: string; model_name: string; blocks: MessageBlocks | null }
-export type Video = { id: string; title: string; description: string; publishTimeMs: number; durationMs: number; thumbnailStandard: boolean; thumbnailMaxres: boolean; channelId: string; channelName: string; unread: boolean; archived: boolean }
+export type Chats = { chats: Chat[] }
+export type ProviderData = { provider_name: string; api_key: string; display_name: string }
+export type MessageBlocks = { blocks: MessageBlock[] }

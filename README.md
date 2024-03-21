@@ -4,15 +4,16 @@
 
 #### Before release:
 
-- git squash
 - Make it so other chats can be opened after input was entered and the model is cooking
+- Add back the release workflows
 
 #### After release:
 
 - Enter system prompts per chat/globally
 - Add a way for users to see descriptions of the models/ link to the docs
-- Create transparent error handlers for all errors
-  - Anthropic: https://docs.anthropic.com/claude/reference/errors
+- Create transparent error handlers for all errors (e.g. Anthropic: https://docs.anthropic.com/claude/reference/errors)
+- Add image generation APIs
+- Add support for Google as soon as it is available in Germany
 
 ### Get started
 
@@ -25,8 +26,6 @@
 
 - `npm run dev`: Start app in dev mode. It sets `DEVELOPMENT=1` to tell the app to use `./src-tauri/appdata` for app data.
 - `npm run build`: Build
-- `npm run lint`: Lint
-- `npm run format`: Format
 
 ### Store API keys for development
 
