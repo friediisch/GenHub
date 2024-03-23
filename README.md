@@ -26,6 +26,7 @@
 
 - `npm run dev`: Start app in dev mode. It sets `DEVELOPMENT=1` to tell the app to use `./src-tauri/appdata` for app data.
 - `npm run build`: Build
+- `npm run lint`: Lint
 
 ### Store API keys for development
 

@@ -10,7 +10,6 @@
 	let chats: c.Chats = { chats: [] }
 	let currentChatMessages: c.Message[]
 	$: currentChatMessages = []
-	let msg = 'How can I help you today?'
 	let selectedChatId: string
 	let newChatId: string
 	let inputText = ''
@@ -40,7 +39,6 @@
 	})
 
 	async function keydown(e: KeyboardEvent) {
-		let target = e.target as HTMLElement
 		if (checkShortcut(e, 'N', { cmdOrCtrl: true })) {
 			newChat()
 		}
@@ -65,7 +63,7 @@
 			tmpMessage,
 			{ id: 'animationMessage', role: 'animate', content: '', model_name: '', blocks: null },
 		]
-		msg = await c.getMessage(inputTextToBeSent, selectedChatId, selectedModel)
+		await c.getMessage(inputTextToBeSent, selectedChatId, selectedModel)
 		chats = await c.getChats()
 		tmpMessage = { id: 'tmpMessage', role: '', content: '', model_name: '', blocks: null }
 		frontendLoadChat(selectedChatId)
@@ -106,13 +104,15 @@
 
 	async function handleInput(event: any) {
 		const textarea = event.target
-		textarea.style.height = 'auto'
-		textarea.style.height = `${textarea.scrollHeight}px`
-		if (textarea.scrollHeight > 300) {
-			textarea.style.overflowY = 'scroll'
-			textarea.style.height = '300px'
-		} else {
-			textarea.style.overflowY = 'hidden'
+		if (textarea instanceof HTMLTextAreaElement) {
+			textarea.style.height = 'auto'
+			textarea.style.height = `${textarea.scrollHeight}px`
+			if (textarea.scrollHeight > 300) {
+				textarea.style.overflowY = 'scroll'
+				textarea.style.height = '300px'
+			} else {
+				textarea.style.overflowY = 'hidden'
+			}
 		}
 	}
 </script>
