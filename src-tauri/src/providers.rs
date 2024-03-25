@@ -37,6 +37,7 @@ pub async fn get_message(
 	let messages: MessageHistory;
 	let provider_name: String;
 	let api_key: String;
+	let mut chats_result: Result<Option<(String,)>, sqlx::Error>;
 
 	{
 		let data = data.0.lock().await;
@@ -55,24 +56,40 @@ pub async fn get_message(
 		// emit event that a new message is in the database
 		let _ = data.window.emit("newMessage", &chat_id);
 
-		let insert_chat_display_name_query = "INSERT INTO chats (id, model, api_key_id, display_name, archived, last_updated) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)";
-		let query_result = sqlx::query(insert_chat_display_name_query)
+		let chat_display_name_query: &str = "SELECT display_name FROM chats WHERE id = $1";
+		chats_result = sqlx::query_as(chat_display_name_query)
 			.bind(&chat_id)
-			.bind(&model_name)
-			.bind("NA")
-			.bind(format!("unnamed_new_chat_{}", &chat_id))
-			.bind("false")
-			.execute(&data.db_pool)
+			.fetch_optional(&data.db_pool)
 			.await;
-		match query_result {
-			Ok(_) => {
-				// emit event that a new message is in the database
-				let _ = data.window.emit("newMessage", &chat_id);
+
+		match &chats_result {
+			Ok(Some(_display_name)) => {}
+			Ok(None) => {
+				let insert_chat_display_name_query = "INSERT INTO chats (id, model, api_key_id, display_name, archived, last_updated) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)";
+				let query_result = sqlx::query(insert_chat_display_name_query)
+					.bind(&chat_id)
+					.bind(&model_name)
+					.bind("NA")
+					.bind(format!("unnamed_new_chat_{}", &chat_id))
+					.bind("false")
+					.execute(&data.db_pool)
+					.await;
+				match query_result {
+					Ok(_) => {
+						// emit event that a new message is in the database
+						let _ = data.window.emit("newMessage", &chat_id);
+					}
+					Err(e) => {
+						eprintln!("Error inserting display name into database: {}", e);
+					}
+				}
 			}
 			Err(e) => {
-				eprintln!("Error inserting display name into database: {}", e);
+				eprintln!("Error fetching display name from database: {}", e);
 			}
 		}
+
+		let _ = data.window.emit("newMessage", &chat_id);
 
 		// Get the provider name from the models table
 		let provider_name_query: &str = "SELECT provider_name FROM models WHERE model_name = $1";
@@ -157,7 +174,6 @@ pub async fn get_message(
 		}
 	}
 
-	let chats_result: Result<Option<(String,)>, sqlx::Error>;
 	{
 		let data = data.0.lock().await;
 
@@ -174,14 +190,14 @@ pub async fn get_message(
 		let rendered_answer: MessageBlocks = render_message(&answer).await;
 		insert_message_blocks(&new_answer_id, &rendered_answer, &data.db_pool).await;
 
+		// emit event that a new message is in the database
+		let _ = data.window.emit("newMessage", &chat_id);
+
 		let chat_display_name_query: &str = "SELECT display_name FROM chats WHERE id = $1";
 		chats_result = sqlx::query_as(chat_display_name_query)
 			.bind(&chat_id)
 			.fetch_optional(&data.db_pool)
 			.await;
-
-		// emit event that a new message is in the database
-		let _ = data.window.emit("newMessage", &chat_id);
 	}
 
 	const MAX_DISPLAY_NAME_LENGTH: usize = 32;

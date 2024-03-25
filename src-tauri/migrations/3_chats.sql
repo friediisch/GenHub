@@ -6,5 +6,7 @@ CREATE TABLE IF NOT EXISTS chats
     display_name TEXT NOT NULL,
     archived TEXT,
     creation_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    last_updated DATETIME
+    last_updated DATETIME 
 );
+
+CREATE INDEX idx_last_updated ON chats (last_updated);

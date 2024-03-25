@@ -2,10 +2,10 @@
 
 ### Todos:
 
-- Make it so other chats can be opened after input was entered and the model is cooking
 - Allow user to set default model (or always use the previous model/use the last model used in the chat)
 - Allow user to re-send a message that was previously sent to a different model
-- Maintain line breaks in user input
+- Allow chat renaming
+- Maintain line breaks and tabs in user input
 - Add index column to improve query performance
 - Enter system prompts per chat/globally
 - Add a way for users to see descriptions of the models/ link to the docs
@@ -28,7 +28,8 @@
 
 ### Store API keys for development
 
-- Create a .env file with API keys:
+Create a .env file with API keys:
+
 - `openai="YOUR_API_KEY"`
 - `mistralai="YOUR_API_KEY"`
 - `anthropic="YOUR_API_KEY"`

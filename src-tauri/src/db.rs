@@ -178,7 +178,7 @@ pub async fn get_models(data: DataState<'_>) -> Result<Models, String> {
 	}
 }
 
-#[derive(Serialize, Deserialize, Type, Debug)]
+#[derive(Serialize, Deserialize, Type, Debug, FromRow)]
 pub struct Chat {
 	pub id: String,
 	pub display_name: String,
@@ -196,25 +196,13 @@ pub struct Chats {
 pub async fn get_chats(data: DataState<'_>) -> Result<Chats, String> {
 	let data = data.0.lock().await;
 	let fetch_query =
-		"SELECT id, display_name, creation_date, last_updated FROM chats WHERE archived = 'false'";
-	let chats_result = sqlx::query_as::<_, (String, String, String, String)>(fetch_query)
-		.fetch_all(&data.db_pool)
-		.await
-		.map_err(|e| e.to_string())?;
-
-	let mut chats: Chats = Chats { chats: Vec::new() };
-	for (id, display_name, creation_date, last_updated) in chats_result {
-		chats.chats.push(Chat {
-			id,
-			display_name,
-			creation_date,
-			last_updated,
-		});
-	}
-	chats
-		.chats
-		.sort_by(|a, b| b.last_updated.cmp(&a.last_updated));
-
+		"SELECT id, display_name, creation_date, last_updated FROM chats WHERE archived = 'false' ORDER BY last_updated DESC";
+	let chats = Chats {
+		chats: sqlx::query_as::<_, Chat>(fetch_query)
+			.fetch_all(&data.db_pool)
+			.await
+			.map_err(|e| e.to_string())?,
+	};
 	Ok(chats)
 }
 
