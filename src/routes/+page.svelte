@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { onMount, afterUpdate } from 'svelte'
+	import { onMount } from 'svelte'
 	import * as c from '../../bindings'
 	import { v4 as uuidv4 } from 'uuid'
 	import Icon from '@iconify/svelte'
 	import { checkShortcut } from '$lib/general'
 	import SettingsModal from '$lib/modals/Settings.svelte'
 	import 'prismjs/themes/prism-funky.css'
+	import { type Event as TauriEvent, listen } from '@tauri-apps/api/event'
 
 	let chats: c.Chats = { chats: [] }
 	let currentChatMessages: c.Message[]
@@ -16,16 +17,7 @@
 	$: submitButtonDisabled =
 		inputText.trim() === '' ||
 		currentChatMessages[currentChatMessages.length - 1]?.role === 'animate'
-	let tmpMessage: c.Message = {
-		id: 'tmpMessage',
-		role: '',
-		content: '',
-		model_name: '',
-		blocks: null,
-	}
 	let modelSelectorOpen: boolean = false
-	// let selectedModel: string = 'claude-3-opus-20240229'
-	//$: selectedModel = models.models[0].model_name
 	$: selectedModel = ''
 	let showSettings: boolean = false
 	let models: c.Models = { models: [] }
@@ -36,6 +28,8 @@
 		models = await c.getModels()
 		selectedModel = models.models[0].model_name
 		newChat()
+		const unsubscribe_newMessage = listen<string>('newMessage', handleNewMessage)
+		const unsubscribe_newChat = listen<string>('newChat', handleNewChat)
 	})
 
 	async function keydown(e: KeyboardEvent) {
@@ -50,23 +44,10 @@
 		const inputTextToBeSent: string = inputText
 		inputText = ''
 		textarea!.style.height = 'auto'
-		tmpMessage = {
-			id: 'tmpMessage',
-			role: 'user',
-			content: inputTextToBeSent,
-			model_name: selectedModel,
-			blocks: null,
-		}
 		newChatId = ''
-		currentChatMessages = [
-			...currentChatMessages,
-			tmpMessage,
-			{ id: 'animationMessage', role: 'animate', content: '', model_name: '', blocks: null },
-		]
-		await c.getMessage(inputTextToBeSent, selectedChatId, selectedModel)
+		scrollToBottom()
+		c.getMessage(inputTextToBeSent, selectedChatId, selectedModel)
 		chats = await c.getChats()
-		tmpMessage = { id: 'tmpMessage', role: '', content: '', model_name: '', blocks: null }
-		frontendLoadChat(selectedChatId)
 	}
 
 	async function setFocus() {
@@ -85,20 +66,18 @@
 		setFocus()
 		selectedChatId = new_selectedChatId
 		currentChatMessages = await c.loadChat(selectedChatId)
-		console.log(currentChatMessages)
+		if (currentChatMessages[currentChatMessages.length - 1]?.role === 'user') {
+			currentChatMessages = [
+				...currentChatMessages,
+				{ id: 'animationMessage', role: 'animate', content: '', model_name: '', blocks: null },
+			]
+		}
+		scrollToBottom()
 	}
 
 	let messagesContainer: HTMLElement
-	afterUpdate(async () => {
-		scrollToBottom()
-	})
 	async function scrollToBottom() {
-		// dont scroll if the user has copied a code block
-		if (
-			currentChatMessages.some((message) => message.blocks?.blocks.some((block) => block.copied))
-		) {
-			return
-		}
+		await new Promise((resolve) => setTimeout(resolve))
 		messagesContainer.scrollTop = messagesContainer.scrollHeight
 	}
 
@@ -114,6 +93,17 @@
 				textarea.style.overflowY = 'hidden'
 			}
 		}
+	}
+
+	async function handleNewMessage(event: TauriEvent<string>) {
+		chats = await c.getChats()
+		if (event.payload == selectedChatId) {
+			frontendLoadChat(selectedChatId)
+		}
+	}
+
+	async function handleNewChat(event: TauriEvent<string>) {
+		chats = await c.getChats()
 	}
 </script>
 
@@ -142,6 +132,7 @@
 					style="color: white"
 				/>
 			</div>
+
 			{#each chats.chats as chat}
 				<div
 					class="block p-2 m-2 rounded-md
@@ -158,7 +149,13 @@
 					aria-pressed="false"
 					tabindex="0"
 				>
-					{chat.display_name}
+					{#if chat.display_name.startsWith('unnamed_new_chat_')}
+						<div
+							class="block p-2 m-2 animate-ping rounded-full self-center self-middle size-4 bg-white opacity-100"
+						></div>
+					{:else}
+						{chat.display_name}
+					{/if}
 				</div>
 			{/each}
 		</div>
@@ -341,9 +338,8 @@
 </body>
 
 <style>
-	/* This is your CSS file or a <style> tag in your HTML file */
 	#display_name:hover + #model_name {
-		opacity: 1; /* This is the Tailwind color 'yellow-500' */
+		opacity: 1;
 		z-index: 10;
 	}
 </style>

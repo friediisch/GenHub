@@ -2,13 +2,11 @@
 
 ### Todos:
 
-#### Before release:
-
 - Make it so other chats can be opened after input was entered and the model is cooking
-- Add back the release workflows
-
-#### After release:
-
+- Allow user to set default model (or always use the previous model/use the last model used in the chat)
+- Allow user to re-send a message that was previously sent to a different model
+- Maintain line breaks in user input
+- Add index column to improve query performance
 - Enter system prompts per chat/globally
 - Add a way for users to see descriptions of the models/ link to the docs
 - Create transparent error handlers for all errors (e.g. Anthropic: https://docs.anthropic.com/claude/reference/errors)
