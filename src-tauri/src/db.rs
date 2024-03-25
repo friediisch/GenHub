@@ -205,10 +205,10 @@ pub async fn get_chats(data: DataState<'_>) -> Result<Chats, String> {
 	let mut chats: Chats = Chats { chats: Vec::new() };
 	for (id, display_name, creation_date, last_updated) in chats_result {
 		chats.chats.push(Chat {
-			id: id,
-			display_name: display_name,
-			creation_date: creation_date,
-			last_updated: last_updated,
+			id,
+			display_name,
+			creation_date,
+			last_updated,
 		});
 	}
 	chats
