@@ -219,7 +219,7 @@ pub async fn load_chat(chat_id: String, data: DataState<'_>) -> Result<Vec<Messa
 	match messages_result {
 		Ok(mut messages) => {
 			let message_blocks_fetch_query =
-				"SELECT type_, language, raw_content, rendered_content, copied FROM message_blocks WHERE message_id = $1";
+				"SELECT id, type_, language, raw_content, rendered_content, copied FROM message_blocks WHERE message_id = $1";
 			for message in messages.iter_mut() {
 				let _ = match sqlx::query_as::<_, MessageBlock>(message_blocks_fetch_query)
 					.bind(&message.id)

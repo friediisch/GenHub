@@ -51,7 +51,12 @@ pub async fn get_message(
 			&data.db_pool,
 		)
 		.await;
-		insert_message_blocks(&new_message_id, &render_message(&msg).await, &data.db_pool).await;
+		insert_message_blocks(
+			&new_message_id,
+			&render_message(&msg, &data.settings.code_theme).await,
+			&data.db_pool,
+		)
+		.await;
 
 		// emit event that a new message is in the database
 		let _ = data.window.emit("newMessage", &chat_id);
@@ -187,7 +192,8 @@ pub async fn get_message(
 			&data.db_pool,
 		)
 		.await;
-		let rendered_answer: MessageBlocks = render_message(&answer).await;
+		let rendered_answer: MessageBlocks =
+			render_message(&answer, &data.settings.code_theme).await;
 		insert_message_blocks(&new_answer_id, &rendered_answer, &data.db_pool).await;
 
 		// emit event that a new message is in the database

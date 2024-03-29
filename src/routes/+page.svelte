@@ -21,12 +21,18 @@
 	$: selectedModel = ''
 	let showSettings: boolean = false
 	let models: c.Models = { models: [] }
+	let settings: c.Settings
 
 	onMount(async () => {
 		await c.readApiKeysFromEnv()
 		chats = await c.getChats()
 		models = await c.getModels()
-		selectedModel = models.models[0].model_name
+		settings = await c.getSettings()
+		if (settings.default_model in models.models) {
+			selectedModel = settings.default_model
+		} else {
+			selectedModel = models.models[0].model_name
+		}
 		newChat()
 		const unsubscribe_newMessage = listen<string>('newMessage', handleNewMessage)
 		const unsubscribe_newChat = listen<string>('newChat', handleNewChat)
@@ -260,7 +266,7 @@
 														</div>
 													{/if}
 													<div
-														class="bg-black text-white text-xs font-mono p-3 rounded-b-md whitespace-pre-wrap overflow-x-scroll"
+														class="text-white text-xs font-mono whitespace-pre-wrap overflow-x-scroll"
 													>
 														{@html block.rendered_content}
 													</div>

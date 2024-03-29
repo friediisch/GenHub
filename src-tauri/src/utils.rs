@@ -9,8 +9,9 @@ use syntect::html::{styled_line_to_highlighted_html, IncludeBackground};
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 
-#[derive(Serialize, Deserialize, Debug, FromRow, Type)]
+#[derive(Serialize, Deserialize, Debug, FromRow, Type, Clone)]
 pub struct MessageBlock {
+	pub id: Option<i32>,
 	pub type_: String,
 	pub language: Option<String>,
 	pub raw_content: String,
@@ -40,7 +41,7 @@ pub struct MessageBlocks {
 	pub blocks: Vec<MessageBlock>,
 }
 
-pub async fn render_message(message: &str) -> MessageBlocks {
+pub async fn render_message(message: &str, code_theme: &str) -> MessageBlocks {
 	let mut message_blocks: MessageBlocks = MessageBlocks { blocks: vec![] };
 	let regex = Regex::new(r"```([a-zA-Z]*\n[\s\S]*?)```").unwrap();
 	let mut last_index = 0;
@@ -55,6 +56,7 @@ pub async fn render_message(message: &str) -> MessageBlocks {
 			let raw_content = message[last_index..offset].trim().to_string();
 			let rendered_content = process_text(raw_content.clone());
 			message_blocks.blocks.push(MessageBlock {
+				id: None,
 				type_: "text".to_string(),
 				language: None,
 				raw_content: raw_content,
@@ -76,13 +78,14 @@ pub async fn render_message(message: &str) -> MessageBlocks {
 				("plain".to_string(), code_with_lang.to_string())
 			};
 
-		let highlighted_code: String = match highlight_code(&code, &language).await {
+		let highlighted_code: String = match highlight_code(&code, &language, code_theme) {
 			Ok(highlighted_code) => highlighted_code.to_string(),
 			Err(_) => code.to_string(),
 		};
 
 		// Add the code block
 		message_blocks.blocks.push(MessageBlock {
+			id: None,
 			type_: "code".to_string(),
 			language: Some(language),
 			raw_content: code,
@@ -99,6 +102,7 @@ pub async fn render_message(message: &str) -> MessageBlocks {
 		let raw_content = message[last_index..].trim().to_string();
 		let rendered_content = process_text(raw_content.clone());
 		message_blocks.blocks.push(MessageBlock {
+			id: None,
 			type_: "text".to_string(),
 			language: None,
 			raw_content: raw_content,
@@ -109,24 +113,32 @@ pub async fn render_message(message: &str) -> MessageBlocks {
 	message_blocks
 }
 
-async fn highlight_code(code: &str, language: &str) -> Result<String, String> {
+pub fn highlight_code(code: &str, language: &str, code_theme: &str) -> Result<String, String> {
 	let ps: SyntaxSet = SyntaxSet::load_defaults_newlines();
 	let ts: ThemeSet = ThemeSet::load_defaults();
 	let capitalized_language: String = capitalize_first_letter(&language);
 	let syntax: &syntect::parsing::SyntaxReference = ps
 		.find_syntax_by_token(&capitalized_language)
 		.unwrap_or_else(|| ps.find_syntax_by_extension("js").unwrap());
-	// println!("{:?}", ts.themes.keys());
-	// ["InspiredGitHub", "Solarized (dark)", "Solarized (light)", "base16-eighties.dark", "base16-mocha.dark", "base16-ocean.dark", "base16-ocean.light"]
-	let mut h: HighlightLines<'_> = HighlightLines::new(syntax, &ts.themes["base16-eighties.dark"]);
+	let theme = &ts.themes[code_theme];
+	let mut h: HighlightLines<'_> = HighlightLines::new(syntax, theme);
+	let bgc = theme
+		.settings
+		.background
+		.unwrap_or_else(|| syntect::highlighting::Color::BLACK);
 	let mut result: String = String::new();
+	result.push_str(&format!(
+		"<div style=\"background-color:#{:02x}{:02x}{:02x};padding:0.75rem;border-bottom-right-radius:0.375rem;border-bottom-left-radius:0.375rem;overflow-x:scroll\">",
+		bgc.r, bgc.g, bgc.b
+	));
 	result.push_str("<pre><code>");
 	for line in LinesWithEndings::from(code) {
 		let ranges: Vec<(Style, &str)> = h.highlight_line(line, &ps).unwrap();
-		let html = styled_line_to_highlighted_html(&ranges[..], IncludeBackground::No).unwrap();
+		let html = styled_line_to_highlighted_html(&ranges[..], IncludeBackground::Yes).unwrap();
 		result.push_str(&html);
 	}
 	result.push_str("</code></pre>");
+	result.push_str("</div>");
 	Ok(result)
 }
 

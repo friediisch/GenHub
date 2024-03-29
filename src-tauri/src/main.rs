@@ -15,6 +15,7 @@ use tauri::{
 mod data;
 mod db;
 mod providers;
+mod settings;
 mod utils;
 
 fn error_popup_main_thread(msg: impl AsRef<str>) {
@@ -57,7 +58,9 @@ async fn main() {
 				db::load_providers,
 				db::set_api_keys,
 				db::get_models,
-				db::read_api_keys_from_env
+				db::read_api_keys_from_env,
+				settings::get_settings,
+				settings::apply_and_save_settings
 			],
 			"../bindings.ts",
 		)
@@ -91,7 +94,9 @@ async fn main() {
 			db::load_providers,
 			db::set_api_keys,
 			db::get_models,
-			db::read_api_keys_from_env
+			db::read_api_keys_from_env,
+			settings::get_settings,
+			settings::apply_and_save_settings
 		])
 		.setup(move |app| {
 			let win = WindowBuilder::new(app, "main", WindowUrl::default())
@@ -129,11 +134,12 @@ async fn main() {
 					nsw.setBackgroundColor_(bg_color);
 				}
 			}
-
+			let settings_path = &app_paths.settings_file.clone();
 			let data = Data {
 				db_pool: pool,
 				paths: app_paths,
 				window: win.clone(),
+				settings: settings::Settings::load(&settings_path),
 			};
 			app.manage(ArcData::new(data));
 

@@ -1,6 +1,7 @@
 use sqlx::SqlitePool;
 use std::env;
 
+use crate::settings::Settings;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::{Config, State};
@@ -20,7 +21,7 @@ impl AppPaths {
 		};
 		AppPaths {
 			app_dir: app_dir.clone(),
-			settings_file: app_dir.join("Settings.json"),
+			settings_file: app_dir.join("settings.json"),
 			db: app_dir.join("genhub.sqlite").to_string_lossy().to_string(),
 		}
 	}
@@ -30,6 +31,7 @@ pub struct Data {
 	pub db_pool: SqlitePool,
 	pub paths: AppPaths,
 	pub window: tauri::Window,
+	pub settings: Settings,
 }
 
 pub type DataState<'a> = State<'a, ArcData>;
