@@ -221,6 +221,9 @@
 					<div class="text-center text-3xl text-gradient animate-fly-and-fade">
 						How can I help you today?
 					</div>
+					<div class="text-center text-md text-gray-500 animate-fly-and-fade">
+						{selectedModel}
+					</div>
 				</div>
 			{:else}
 				<div class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-1">

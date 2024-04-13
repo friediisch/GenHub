@@ -8,7 +8,6 @@
 - Enter system prompts per chat/globally
 - Add a way for users to see descriptions of the models/ link to the docs
 - Create transparent error handlers for all errors
-  - (e.g. Anthropic: https://docs.anthropic.com/claude/reference/errors)
   - Allow user to re-send a message that was previously sent to a different model
 - Add image generation APIs
 - Add support for Google as soon as it is available in Germany

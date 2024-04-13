@@ -30,43 +30,59 @@ struct AnthropicUsage {
 	output_tokens: i32,
 }
 
-// struct for anthropic error response:
-// {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}
+#[derive(Debug, Serialize, Deserialize)]
+struct AnthropicErrorResponse {
+	#[serde(rename = "type")]
+	error_type: String,
+	error: AnthropicErrorDetails,
+}
 
-// pub struct AnthropicErrorResponse {
-// 	error: AnthropicError,
-// }
-
-// #[derive(Serialize, Deserialize, Debug)]
-// struct AnthropicError {
-// 	type_: String,
-// 	message: String,
-// }
+#[derive(Debug, Serialize, Deserialize)]
+struct AnthropicErrorDetails {
+	#[serde(rename = "type")]
+	error_type: String,
+	message: String,
+}
 
 pub async fn send_anthropic_message(body: Value, api_key: &str) -> Result<String, Box<dyn Error>> {
 	let url = "https://api.anthropic.com/v1/messages";
 	let client = Client::new();
-	let response: Response = client
+	let response = client
 		.post(url)
 		.header("Content-Type", "application/json")
 		.header("anthropic-version", "2023-06-01")
 		.header("x-api-key", api_key)
 		.json(&body)
 		.send()
-		.await
-		.map_err(|err| err.to_string())?;
+		.await;
 
-	let response_text: String = response.text().await.map_err(|err| err.to_string())?;
+	let response_text = match response {
+		Ok(response) => response.text().await.unwrap(),
+		Err(err) => {
+			eprintln!("Error: {:?}", err);
+			return Ok(format!("Error: {:?}", err));
+		}
+	};
 
-	let parsed_response: AnthropicChatResponse =
-		serde_json::from_str(&response_text).map_err(|err| err.to_string())?;
-
-	let answer: String = parsed_response
-		.content
-		.get(0)
-		.ok_or("No response".to_string())?
-		.text
-		.clone();
-
+	let result = serde_json::from_str::<AnthropicChatResponse>(&response_text);
+	let answer = match result {
+		Ok(parsed_response) => parsed_response
+			.content
+			.get(0)
+			.ok_or("Invalid response".to_string())
+			.unwrap()
+			.text
+			.clone(),
+		Err(_e) => {
+			let error_result = serde_json::from_str::<AnthropicErrorResponse>(&response_text);
+			match error_result {
+				Ok(parsed_error) => format!(
+					"{}: {}",
+					parsed_error.error.error_type, parsed_error.error.message
+				),
+				Err(_e) => "Unknown error".to_string(),
+			}
+		}
+	};
 	Ok(answer)
 }
