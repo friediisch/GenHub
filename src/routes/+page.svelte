@@ -79,6 +79,11 @@
 			]
 		}
 		scrollToBottom()
+		if (currentChatMessages[currentChatMessages.length - 1]?.role === 'animate') {
+			selectedModel = currentChatMessages.at(-2)!.model_name
+		} else {
+			selectedModel = currentChatMessages.at(-1)!.model_name
+		}
 	}
 
 	let messagesContainer: HTMLElement

@@ -2,14 +2,14 @@
 
 ### Todos:
 
-- Allow user to set default model (or always use the previous model/use the last model used in the chat)
-- Allow user to re-send a message that was previously sent to a different model
 - Allow chat renaming
 - Maintain line breaks and tabs in user input
 - Add index column to improve query performance
 - Enter system prompts per chat/globally
 - Add a way for users to see descriptions of the models/ link to the docs
-- Create transparent error handlers for all errors (e.g. Anthropic: https://docs.anthropic.com/claude/reference/errors)
+- Create transparent error handlers for all errors
+  - (e.g. Anthropic: https://docs.anthropic.com/claude/reference/errors)
+  - Allow user to re-send a message that was previously sent to a different model
 - Add image generation APIs
 - Add support for Google as soon as it is available in Germany
 
