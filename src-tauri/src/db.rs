@@ -236,7 +236,6 @@ pub async fn load_chat(chat_id: String, data: DataState<'_>) -> Result<Vec<Messa
 					}
 				};
 			}
-
 			return Ok(messages);
 		}
 		Err(e) => {

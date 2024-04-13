@@ -38,7 +38,6 @@ pub async fn get_message(
 	let provider_name: String;
 	let api_key: String;
 	let mut chats_result: Result<Option<(String,)>, sqlx::Error>;
-
 	{
 		let data = data.0.lock().await;
 		let new_message_id = uuid::Uuid::new_v4().to_string();

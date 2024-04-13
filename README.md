@@ -3,7 +3,6 @@
 ### Todos:
 
 - Allow chat renaming
-- Maintain line breaks and tabs in user input
 - Add index column to improve query performance
 - Enter system prompts per chat/globally
 - Add a way for users to see descriptions of the models/ link to the docs

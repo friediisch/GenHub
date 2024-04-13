@@ -234,7 +234,7 @@
 							<div class="font-bold p-1 whitespace-nowrap">
 								<div>You</div>
 							</div>
-							<div class="p-1 word-break:break-word overflow-wrap:break-word">
+							<div class="p-1 whitespace-pre-wrap word-break:break-word overflow-wrap:break-word">
 								{message.content}
 							</div>
 						{:else}
