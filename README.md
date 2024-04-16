@@ -2,6 +2,7 @@
 
 ### Todos:
 
+- Include Mistral 7B and Gemma 7B through Candle: https://github.com/huggingface/candle
 - Allow chat renaming
 - Add index column to improve query performance
 - Enter system prompts per chat/globally
