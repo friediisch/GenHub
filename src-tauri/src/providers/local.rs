@@ -1,20 +1,25 @@
-#[cfg(feature = "mkl")]
-extern crate intel_mkl_src;
+#![allow(unused_variables)]
+// #[cfg(feature = "mkl")]
+// extern crate intel_mkl_src;
 
-#[cfg(feature = "accelerate")]
-extern crate accelerate_src;
+// #[cfg(feature = "accelerate")]
+// extern crate accelerate_src;
+
+// use std::error::Error;
 
 use anyhow::{Error as E, Result};
-use clap::Parser;
+// use clap::Parser;
 
 use candle_transformers::models::mistral::{Config, Model as Mistral};
 use candle_transformers::models::quantized_mistral::Model as QMistral;
 
-use candle::{DType, Device, Tensor};
+use candle_core::{DType, Device, Tensor};
 use candle_examples::token_output_stream::TokenOutputStream;
 use candle_nn::VarBuilder;
 use candle_transformers::generation::{LogitsProcessor, Sampling};
 use hf_hub::{api::sync::Api, Repo, RepoType};
+use minijinja::{context, Environment};
+use serde_json::Value;
 use tokenizers::Tokenizer;
 
 enum Model {
@@ -69,7 +74,7 @@ impl TextGeneration {
 		}
 	}
 
-	fn run(&mut self, prompt: &str, sample_len: usize) -> Result<()> {
+	fn run(&mut self, prompt: &str, sample_len: usize) -> Result<String> {
 		use std::io::Write;
 		self.tokenizer.clear();
 		let mut tokens = self
@@ -79,6 +84,7 @@ impl TextGeneration {
 			.map_err(E::msg)?
 			.get_ids()
 			.to_vec();
+		let mut answer = String::new();
 		for &t in tokens.iter() {
 			if let Some(t) = self.tokenizer.next_token(t)? {
 				print!("{t}")
@@ -89,7 +95,7 @@ impl TextGeneration {
 		let mut generated_tokens = 0usize;
 		let eos_token = match self.tokenizer.get_token("</s>") {
 			Some(token) => token,
-			None => anyhow::bail!("cannot find the </s> token"),
+			None => panic!("cannot find the </s> token"),
 		};
 		let start_gen = std::time::Instant::now();
 		for index in 0..sample_len {
@@ -117,10 +123,12 @@ impl TextGeneration {
 			tokens.push(next_token);
 			generated_tokens += 1;
 			if next_token == eos_token {
+				println!("</s> token generated, stopping");
 				break;
 			}
 			if let Some(t) = self.tokenizer.next_token(next_token)? {
 				print!("{t}");
+				answer.push_str(&t);
 				std::io::stdout().flush()?;
 			}
 		}
@@ -133,115 +141,129 @@ impl TextGeneration {
 			"\n{generated_tokens} tokens generated ({:.2} token/s)",
 			generated_tokens as f64 / dt.as_secs_f64(),
 		);
-		Ok(())
+		Ok(answer)
 	}
 }
 
-#[derive(Clone, Debug, Copy, PartialEq, Eq, clap::ValueEnum)]
-enum Which {
-	#[value(name = "7b-v0.1")]
-	Mistral7bV01,
-	#[value(name = "7b-v0.2")]
-	Mistral7bV02,
-	#[value(name = "7b-instruct-v0.1")]
-	Mistral7bInstructV01,
-	#[value(name = "7b-instruct-v0.2")]
-	Mistral7bInstructV02,
-}
+// #[derive(Clone, Debug, Copy, PartialEq, Eq)]
+// enum Which {
+// 	// Mistral7bV01,
+// 	// Mistral7bV02,
+// 	// Mistral7bInstructV01,
+// 	// Mistral7bInstructV02,
+// }
 
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
+#[derive(Debug)]
+struct Mistral7BArgs {
 	/// Run on CPU rather than on GPU.
-	#[arg(long)]
 	cpu: bool,
 
 	/// Enable tracing (generates a trace-timestamp.json file).
-	#[arg(long)]
-	tracing: bool,
-
-	#[arg(long)]
+	// tracing: bool,
 	use_flash_attn: bool,
 
-	#[arg(long)]
 	prompt: String,
 
 	/// The temperature used to generate samples.
-	#[arg(long)]
 	temperature: Option<f64>,
 
 	/// Nucleus sampling probability cutoff.
-	#[arg(long)]
 	top_p: Option<f64>,
 
 	/// Only sample among the top K samples.
-	#[arg(long)]
 	top_k: Option<usize>,
 
 	/// The seed to use when generating random samples.
-	#[arg(long, default_value_t = 299792458)]
 	seed: u64,
 
 	/// The length of the sample to generate (in tokens).
-	#[arg(long, short = 'n', default_value_t = 10000)]
 	sample_len: usize,
 
 	/// The model size to use.
-	#[arg(long, default_value = "7b-v0.1")]
-	which: Which,
+	// which: Which,
 
-	#[arg(long)]
-	model_id: Option<String>,
-
-	#[arg(long, default_value = "main")]
+	// model_id: Option<String>,
 	revision: String,
 
-	#[arg(long)]
 	tokenizer_file: Option<String>,
 
-	#[arg(long)]
 	config_file: Option<String>,
 
-	#[arg(long)]
 	weight_files: Option<String>,
 
-	#[arg(long)]
 	quantized: bool,
 
 	/// Penalty to be applied for repeating tokens, 1. means no penalty.
-	#[arg(long, default_value_t = 1.1)]
 	repeat_penalty: f32,
 
 	/// The context size to consider for the repeat penalty.
-	#[arg(long, default_value_t = 64)]
 	repeat_last_n: usize,
-
-	/// Use the slower dmmv cuda kernel.
-	#[arg(long)]
-	force_dmmv: bool,
+	// Use the slower dmmv cuda kernel.
+	// force_dmmv: bool,
 }
 
-fn main() -> Result<()> {
-	use tracing_chrome::ChromeLayerBuilder;
-	use tracing_subscriber::prelude::*;
+pub async fn send_local_message(body: Value) -> Result<String> {
+	let mut env = Environment::new();
+	env.add_template(
+		"chat_completion_template",
+		r#"
+{% for message in messages %}
+{{ message.role }}
+{{ message.content }}
 
-	let args = Args::parse();
+{% endfor %}
+{% if add_generation_prompt %}
+assistant
+{% endif %}
+"#,
+	)
+	.unwrap();
+	let tmpl = env.get_template("chat_completion_template").unwrap();
+	let prompt = tmpl
+		.render(context! {
+			messages => body.get("messages").unwrap(),
+			add_generation_prompt => false,
+		})
+		.unwrap();
+
+	let args = Mistral7BArgs {
+		cpu: false,
+		// tracing: false,
+		use_flash_attn: false,
+		prompt: prompt,
+		temperature: None,
+		top_p: None,
+		top_k: None,
+		seed: 0,
+		sample_len: body.get("max_tokens").unwrap().to_string().parse().unwrap(),
+		// which: Which::Mistral7bV01,
+		// model_id: None,
+		revision: "main".to_string(),
+		tokenizer_file: None,
+		config_file: None,
+		weight_files: None,
+		// quantized: false,
+		quantized: true,
+		repeat_penalty: 1.,
+		repeat_last_n: 1,
+		// force_dmmv: false,
+	};
 	#[cfg(feature = "cuda")]
 	candle::quantized::cuda::set_force_dmmv(args.force_dmmv);
 
-	let _guard = if args.tracing {
-		let (chrome_layer, guard) = ChromeLayerBuilder::new().build();
-		tracing_subscriber::registry().with(chrome_layer).init();
-		Some(guard)
-	} else {
-		None
-	};
+	// let _guard = if args.tracing {
+	// 	let (chrome_layer, guard) = ChromeLayerBuilder::new().build();
+	// 	tracing_subscriber::registry().with(chrome_layer).init();
+	// 	Some(guard)
+	// } else {
+	// 	None
+	// };
 	println!(
 		"avx: {}, neon: {}, simd128: {}, f16c: {}",
-		candle::utils::with_avx(),
-		candle::utils::with_neon(),
-		candle::utils::with_simd128(),
-		candle::utils::with_f16c()
+		candle_core::utils::with_avx(),
+		candle_core::utils::with_neon(),
+		candle_core::utils::with_simd128(),
+		candle_core::utils::with_f16c()
 	);
 	println!(
 		"temp: {:.2} repeat-penalty: {:.2} repeat-last-n: {}",
@@ -252,38 +274,49 @@ fn main() -> Result<()> {
 
 	let start = std::time::Instant::now();
 	let api = Api::new()?;
-	let model_id = match args.model_id {
-		Some(model_id) => model_id,
-		None => {
-			if args.quantized {
-				if args.which != Which::Mistral7bV01 {
-					anyhow::bail!("only 7b-v0.1 is available as a quantized model for now")
-				}
-				"lmz/candle-mistral".to_string()
-			} else {
-				match args.which {
-					Which::Mistral7bV01 => "mistralai/Mistral-7B-v0.1".to_string(),
-					Which::Mistral7bV02 => "mistralai/Mistral-7B-v0.2".to_string(),
-					Which::Mistral7bInstructV01 => "mistralai/Mistral-7B-Instruct-v0.1".to_string(),
-					Which::Mistral7bInstructV02 => "mistralai/Mistral-7B-Instruct-v0.2".to_string(),
-				}
-			}
-		}
+	let model_id = match args.quantized {
+		true => "lmz/candle-mistral".to_string(),
+		false => "mistralai/Mistral-7B-v0.1".to_string(),
 	};
+	// let model_id = "TheBloke/Mistral-7B-Instruct-v0.2-GGUF".to_string();
+	// let model_id = match args.model_id {
+	// 	Some(model_id) => model_id,
+	// 	None => {
+	// 		if args.quantized {
+	// 			if args.which != Which::Mistral7bV01 {
+	// 				// anyhow::bail!("only 7b-v0.1 is available as a quantized model for now")
+	// 			}
+	// 			"lmz/candle-mistral".to_string()
+	// 		} else {
+	// 			match args.which {
+	// 				Which::Mistral7bV01 => "mistralai/Mistral-7B-v0.1".to_string(),
+	// 				Which::Mistral7bV02 => "mistralai/Mistral-7B-v0.2".to_string(),
+	// 				Which::Mistral7bInstructV01 => "mistralai/Mistral-7B-Instruct-v0.1".to_string(),
+	// 				Which::Mistral7bInstructV02 => "mistralai/Mistral-7B-Instruct-v0.2".to_string(),
+	// 			}
+	// 		}
+	// 	}
+	// };
 	let repo = api.repo(Repo::with_revision(
 		model_id,
 		RepoType::Model,
 		args.revision,
 	));
+	println!("Retrieving tokenizer");
 	let tokenizer_filename = match args.tokenizer_file {
 		Some(file) => std::path::PathBuf::from(file),
 		None => repo.get("tokenizer.json")?,
 	};
+
+	println!("retrieved the tokenizer in {:?}", start.elapsed());
 	let filenames = match args.weight_files {
-		Some(files) => files
-			.split(',')
-			.map(std::path::PathBuf::from)
-			.collect::<Vec<_>>(),
+		Some(files) => {
+			println!("CHP1");
+			files
+				.split(',')
+				.map(std::path::PathBuf::from)
+				.collect::<Vec<_>>()
+		}
 		None => {
 			if args.quantized {
 				vec![repo.get("model-q4k.gguf")?]
@@ -338,6 +371,6 @@ fn main() -> Result<()> {
 		args.repeat_last_n,
 		&device,
 	);
-	pipeline.run(&args.prompt, args.sample_len)?;
-	Ok(())
+	let answer = pipeline.run(&args.prompt, args.sample_len)?;
+	Ok(answer)
 }

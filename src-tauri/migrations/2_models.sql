@@ -19,5 +19,4 @@ INSERT INTO models (provider_name, model_name, model_display_name) VALUES ('mist
 INSERT INTO models (provider_name, model_name, model_display_name) VALUES ('mistralai', 'mistral-small-latest', 'Mistral');
 INSERT INTO models (provider_name, model_name, model_display_name) VALUES ('mistralai', 'mistral-medium-latest', 'Mistral');
 INSERT INTO models (provider_name, model_name, model_display_name) VALUES ('mistralai', 'mistral-large-latest', 'Mistral');
-
-
+-- INSERT INTO models (provider_name, model_name, model_display_name) VALUES ('local', 'Mistral-7B-v0.1-local', 'Mistral');

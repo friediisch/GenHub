@@ -2,15 +2,32 @@
 
 ### Todos:
 
-- Include Mistral 7B and Gemma 7B through Candle: https://github.com/huggingface/candle
+#### Pre-Release
+
 - Allow chat renaming
 - Add index column to improve query performance
-- Enter system prompts per chat/globally
 - Add a way for users to see descriptions of the models/ link to the docs
 - Create transparent error handlers for all errors
   - Allow user to re-send a message that was previously sent to a different model
+- Render markdown tables
+- add App to Mac App Store / Setapp / own distribution
+
+#### Post-Release
+
+- Enter system prompts per chat/globally
+- Refactor and enable local inference + add support for Llama-3-8B locally
 - Add image generation APIs
-- Add support for Google as soon as it is available in Germany
+- Add API-support
+  - Google: Add support for Google as soon as it is available in Germany
+  - Groq
+  - Meta
+- Add support for agents, such as SWE-Agent: https://github.com/princeton-nlp/SWE-agent
+- Include federated learning for local models
+- Add streaming API support
+- RAG-support
+- Automate adding new models to existing APIs
+  - List models request?
+  - Send incorrect model such that the api returns a list of valid models?
 
 ### Get started
 

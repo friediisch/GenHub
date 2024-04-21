@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use specta::Type;
@@ -7,15 +9,16 @@ use tauri::command;
 use crate::{
 	data::DataState,
 	db::{insert_message, insert_message_blocks, Message, MessageHistory},
-	utils::{render_message, MessageBlocks},
+	utils::{render_message, truncate_string, MessageBlocks},
 };
 
 use self::{
-	anthropic::send_anthropic_message, mistralai::send_mistralai_message,
-	openai::send_openai_message,
+	anthropic::send_anthropic_message, local::send_local_message,
+	mistralai::send_mistralai_message, openai::send_openai_message,
 };
 
 pub mod anthropic;
+pub mod local;
 pub mod mistralai;
 pub mod openai;
 
@@ -36,7 +39,7 @@ pub async fn get_message(
 ) -> Result<String, String> {
 	let messages: MessageHistory;
 	let provider_name: String;
-	let api_key: String;
+	let mut api_key: String = "".to_string();
 	let mut chats_result: Result<Option<(String,)>, sqlx::Error>;
 	{
 		let data = data.0.lock().await;
@@ -57,6 +60,7 @@ pub async fn get_message(
 		)
 		.await;
 
+		println!("New message inserted into the database");
 		// emit event that a new message is in the database
 		let _ = data.window.emit("newMessage", &chat_id);
 
@@ -80,6 +84,7 @@ pub async fn get_message(
 					.await;
 				match query_result {
 					Ok(_) => {
+						println!("New message inserted into the database #2");
 						// emit event that a new message is in the database
 						let _ = data.window.emit("newMessage", &chat_id);
 					}
@@ -96,6 +101,7 @@ pub async fn get_message(
 		let _ = data.window.emit("newMessage", &chat_id);
 
 		// Get the provider name from the models table
+		// TODO: Now there are multiple providers, e.g. for "Mistral-7B"
 		let provider_name_query: &str = "SELECT provider_name FROM models WHERE model_name = $1";
 		(provider_name,) = sqlx::query_as::<_, (String,)>(provider_name_query)
 			.bind(&model_name)
@@ -103,13 +109,15 @@ pub async fn get_message(
 			.await
 			.map_err(|e| e.to_string())?;
 
-		// Get the API key from the providers table
-		let api_key_query: &str = "SELECT api_key FROM providers WHERE provider_name = $1";
-		(api_key,) = sqlx::query_as::<_, (String,)>(api_key_query)
-			.bind(&provider_name)
-			.fetch_one(&data.db_pool)
-			.await
-			.map_err(|e| e.to_string())?;
+		if provider_name != "local" {
+			// Get the API key from the providers table
+			let api_key_query: &str = "SELECT api_key FROM providers WHERE provider_name = $1";
+			(api_key,) = sqlx::query_as::<_, (String,)>(api_key_query)
+				.bind(&provider_name)
+				.fetch_one(&data.db_pool)
+				.await
+				.map_err(|e| e.to_string())?;
+		}
 
 		// Get the messages for the current chat from the messages table (including the latest user's message)
 		let messages_query: &str =
@@ -157,7 +165,6 @@ pub async fn get_message(
 				}
 			};
 		}
-		"google" => {}
 		"mistralai" => {
 			let body: Value = json!({
 				"model": &model_name,
@@ -173,10 +180,29 @@ pub async fn get_message(
 				}
 			};
 		}
+		"local" => {
+			let body: Value = json!({
+				"model": &model_name,
+				"messages": messages.render("openai"),
+				"temperature": 0.7,
+				"max_tokens": 512
+			});
+			answer = match send_local_message(body).await {
+				Ok(answer) => answer,
+				Err(e) => {
+					eprintln!("Error sending message to Local: {}", e);
+					e.to_string()
+				}
+			};
+		}
+		"google" => {}
 		_ => {
 			return Err("Provider not found".to_string());
 		}
 	}
+
+	println!("Sleeping #2");
+	std::thread::sleep(Duration::from_secs(3));
 
 	{
 		let data = data.0.lock().await;
@@ -281,6 +307,9 @@ pub async fn get_message(
 										return Ok(answer);
 									}
 								}
+						}
+						"local" => {
+							new_chat_display_name = truncate_string(&chat_id, 10).to_string()
 						}
 						_ => new_chat_display_name = "Error fetching chat name".to_string(),
 					}

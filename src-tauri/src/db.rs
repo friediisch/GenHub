@@ -162,7 +162,7 @@ pub struct Models {
 #[specta::specta]
 pub async fn get_models(data: DataState<'_>) -> Result<Models, String> {
 	let data = data.0.lock().await;
-	let models_query = "SELECT provider_name, model_name, model_display_name FROM models WHERE provider_name IN (SELECT provider_name FROM providers WHERE api_key != '')";
+	let models_query = "SELECT provider_name, model_name, model_display_name FROM models WHERE provider_name IN (SELECT provider_name FROM providers WHERE api_key != '') OR provider_name = 'local'";
 	let models_query_result = sqlx::query_as::<_, Model>(models_query)
 		.fetch_all(&data.db_pool)
 		.await;

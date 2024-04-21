@@ -34,9 +34,14 @@ regex = "1"
 syntect = "5"
 dotenv = "0.15"
 rayon = "1.10"
-candle-core = "0.4"
-candle-transformers = "0.4"
-candle-nn = "0.4"
+candle-core = { git = "https://github.com/huggingface/candle.git", rev = "1690ab45d2f636bac256bf101c65eb6fa0a1165a", features= ["metal"] }
+candle-transformers = { git = "https://github.com/huggingface/candle.git", rev = "1690ab45d2f636bac256bf101c65eb6fa0a1165a", features= ["metal"] }
+candle-nn = { git = "https://github.com/huggingface/candle.git", rev = "1690ab45d2f636bac256bf101c65eb6fa0a1165a", features= ["metal"] }
+candle-examples = { git = "https://github.com/huggingface/candle.git", rev = "1690ab45d2f636bac256bf101c65eb6fa0a1165a", features= ["metal"] }
+hf-hub = "0.3"
+tokenizers = { version = "0.15" }
+anyhow = { version = "1", features = ["backtrace"] }
+minijinja = "1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 macos-app-nap = "0.0"
