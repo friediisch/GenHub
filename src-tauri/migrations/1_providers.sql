@@ -10,3 +10,4 @@ INSERT INTO providers (provider_name, api_key, display_name) VALUES ('local', ''
 INSERT INTO providers (provider_name, api_key, display_name) VALUES ('openai', '', 'OpenAI');
 INSERT INTO providers (provider_name, api_key, display_name) VALUES ('anthropic', '', 'Anthropic');
 INSERT INTO providers (provider_name, api_key, display_name) VALUES ('mistralai', '', 'Mistral AI');
+INSERT INTO providers (provider_name, api_key, display_name) VALUES ('groqcloud', '', 'Groq Cloud');

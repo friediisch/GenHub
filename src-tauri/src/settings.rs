@@ -11,6 +11,7 @@ use crate::utils::{highlight_code, MessageBlock};
 #[derive(Serialize, Deserialize, Clone, Debug, Type)]
 pub struct Settings {
 	pub default_model: String,
+	pub default_provider: String,
 	pub code_theme: String,
 }
 impl Settings {
@@ -20,6 +21,7 @@ impl Settings {
 			Err(_) => {
 				let default_settings = Settings {
 					default_model: "claude-3-opus-20240229".to_string(),
+					default_provider: "anthropic".to_string(),
 					code_theme: "base16-eighties.dark".to_string(),
 				};
 				let settings = serde_json::to_string(&default_settings).unwrap();

@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use specta::Type;
@@ -13,11 +11,12 @@ use crate::{
 };
 
 use self::{
-	anthropic::send_anthropic_message, local::send_local_message,
-	mistralai::send_mistralai_message, openai::send_openai_message,
+	anthropic::send_anthropic_message, groqcloud::send_groqcloud_message,
+	local::send_local_message, mistralai::send_mistralai_message, openai::send_openai_message,
 };
 
 pub mod anthropic;
+pub mod groqcloud;
 pub mod local;
 pub mod mistralai;
 pub mod openai;
@@ -34,11 +33,11 @@ pub struct ProviderData {
 pub async fn get_message(
 	msg: String,
 	chat_id: String,
+	provider_name: String,
 	model_name: String,
 	data: DataState<'_>,
 ) -> Result<String, String> {
 	let messages: MessageHistory;
-	let provider_name: String;
 	let mut api_key: String = "".to_string();
 	let mut chats_result: Result<Option<(String,)>, sqlx::Error>;
 	{
@@ -60,7 +59,6 @@ pub async fn get_message(
 		)
 		.await;
 
-		println!("New message inserted into the database");
 		// emit event that a new message is in the database
 		let _ = data.window.emit("newMessage", &chat_id);
 
@@ -84,7 +82,6 @@ pub async fn get_message(
 					.await;
 				match query_result {
 					Ok(_) => {
-						println!("New message inserted into the database #2");
 						// emit event that a new message is in the database
 						let _ = data.window.emit("newMessage", &chat_id);
 					}
@@ -99,15 +96,6 @@ pub async fn get_message(
 		}
 
 		let _ = data.window.emit("newMessage", &chat_id);
-
-		// Get the provider name from the models table
-		// TODO: Now there are multiple providers, e.g. for "Mistral-7B"
-		let provider_name_query: &str = "SELECT provider_name FROM models WHERE model_name = $1";
-		(provider_name,) = sqlx::query_as::<_, (String,)>(provider_name_query)
-			.bind(&model_name)
-			.fetch_one(&data.db_pool)
-			.await
-			.map_err(|e| e.to_string())?;
 
 		if provider_name != "local" {
 			// Get the API key from the providers table
@@ -180,29 +168,41 @@ pub async fn get_message(
 				}
 			};
 		}
-		"local" => {
+		"groqcloud" => {
 			let body: Value = json!({
 				"model": &model_name,
 				"messages": messages.render("openai"),
 				"temperature": 0.7,
-				"max_tokens": 512
+				"max_tokens": 4096
 			});
-			answer = match send_local_message(body).await {
+			answer = match send_groqcloud_message(body, &api_key).await {
 				Ok(answer) => answer,
 				Err(e) => {
-					eprintln!("Error sending message to Local: {}", e);
+					eprintln!("Error sending message to Groq: {}", e);
 					e.to_string()
 				}
 			};
 		}
+		// "local" => {
+		// 	let body: Value = json!({
+		// 		"model": &model_name,
+		// 		"messages": messages.render("openai"),
+		// 		"temperature": 0.7,
+		// 		"max_tokens": 512
+		// 	});
+		// 	answer = match send_local_message(body).await {
+		// 		Ok(answer) => answer,
+		// 		Err(e) => {
+		// 			eprintln!("Error sending message to Local: {}", e);
+		// 			e.to_string()
+		// 		}
+		// 	};
+		// }
 		"google" => {}
 		_ => {
-			return Err("Provider not found".to_string());
+			answer = format!("Provider {provider_name} not implemented");
 		}
 	}
-
-	println!("Sleeping #2");
-	std::thread::sleep(Duration::from_secs(3));
 
 	{
 		let data = data.0.lock().await;
@@ -308,9 +308,27 @@ pub async fn get_message(
 									}
 								}
 						}
-						"local" => {
-							new_chat_display_name = truncate_string(&chat_id, 10).to_string()
+						"groqcloud" => {
+							let body = json!({
+								"model": &model_name,
+								"messages": display_name_messages.render("openai"),
+								"temperature": 0.7,
+								"max_tokens": &MAX_DISPLAY_NAME_LENGTH,
+							});
+							new_chat_display_name = match send_groqcloud_message(body, &api_key)
+								.await
+							{
+								Ok(answer) => answer,
+								Err(e) => {
+									answer = format!("Error fetching chat name from Groq: {}", e);
+									eprintln!("{}", &answer);
+									return Ok(answer);
+								}
+							}
 						}
+						// "local" => {
+						// 	new_chat_display_name = truncate_string(&chat_id, 10).to_string()
+						// }
 						_ => new_chat_display_name = "Error fetching chat name".to_string(),
 					}
 					let data = data.0.lock().await;

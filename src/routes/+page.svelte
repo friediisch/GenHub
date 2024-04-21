@@ -18,21 +18,29 @@
 		inputText.trim() === '' ||
 		currentChatMessages[currentChatMessages.length - 1]?.role === 'animate'
 	let modelSelectorOpen: boolean = false
-	$: selectedModel = ''
+	let selectedModel: c.Model
+	let selectedModelName: string = ''
 	let showSettings: boolean = false
 	let models: c.Models = { models: [] }
 	let settings: c.Settings
+	let providers: c.ProviderData[] = []
 
 	onMount(async () => {
 		await c.readApiKeysFromEnv()
 		chats = await c.getChats()
 		models = await c.getModels()
 		settings = await c.getSettings()
+		providers = await c.loadProviders()
 		if (settings.default_model in models.models) {
-			selectedModel = settings.default_model
+			selectedModel = models.models.find(
+				(model) =>
+					model.model_name == settings.default_model &&
+					model.provider_name == settings.default_provider,
+			)!
 		} else {
-			selectedModel = models.models[0].model_name
+			selectedModel = models.models[0]
 		}
+		selectedModelName = selectedModel.model_name
 		newChat()
 		const unsubscribe_newMessage = listen<string>('newMessage', handleNewMessage)
 		const unsubscribe_newChat = listen<string>('newChat', handleNewChat)
@@ -52,7 +60,12 @@
 		textarea!.style.height = 'auto'
 		newChatId = ''
 		scrollToBottom()
-		c.getMessage(inputTextToBeSent, selectedChatId, selectedModel)
+		c.getMessage(
+			inputTextToBeSent,
+			selectedChatId,
+			selectedModel.provider_name,
+			selectedModel.model_name,
+		)
 		chats = await c.getChats()
 	}
 
@@ -79,11 +92,12 @@
 			]
 		}
 		scrollToBottom()
-		if (currentChatMessages[currentChatMessages.length - 1]?.role === 'animate') {
-			selectedModel = currentChatMessages.at(-2)!.model_name
-		} else {
-			selectedModel = currentChatMessages.at(-1)!.model_name
-		}
+		let offset = currentChatMessages[currentChatMessages.length - 1]?.role === 'animate' ? 2 : 1
+		selectedModel = models.models.find(
+			(model) =>
+				model.model_name == currentChatMessages[currentChatMessages.length - offset]?.model_name,
+		)!
+		selectedModelName = selectedModel.model_name
 	}
 
 	let messagesContainer: HTMLElement
@@ -186,28 +200,33 @@
 				class="group text-lg px-2 py-1 align-middle hover:bg-gray2 w-fit rounded-md cursor-pointer my-2 mx-1"
 				on:click={() => (modelSelectorOpen = !modelSelectorOpen)}
 			>
-				{selectedModel}
+				{selectedModelName}
 				<span class="icon-[octicon--chevron-down-12] scale-75 text-white"></span>
 			</button>
 			<hr class="border-gray-600" />
 			{#if modelSelectorOpen}
-				<div class="absolute z-10 bg-gray2 rounded-md p-2 mt-2">
+				<div class="absolute z-10 bg-gray2 rounded-md p-2 mt-2 overflow-x-scroll">
 					{#each models.models as model}
 						<div
 							class="block p-2 m-2 hover:bg-gray-600 rounded-md"
+							class:bg-white={selectedModel == model}
+							class:text-black={selectedModel == model}
 							on:click={() => {
-								selectedModel = model.model_name
+								selectedModel = model
+								selectedModelName = selectedModel.model_name
 								modelSelectorOpen = false
 							}}
 							on:keydown={() => {
-								selectedModel = model.model_name
+								selectedModel = model
+								selectedModelName = selectedModel.model_name
 								modelSelectorOpen = false
 							}}
 							role="button"
 							aria-pressed="false"
 							tabindex="0"
 						>
-							{model.model_name}
+							{providers.find((provider) => provider.provider_name == model.provider_name)
+								?.display_name} - {model.model_name}
 						</div>{/each}
 				</div>
 			{/if}
@@ -222,7 +241,7 @@
 						How can I help you today?
 					</div>
 					<div class="text-center text-md text-gray-500 animate-fly-and-fade">
-						{selectedModel}
+						{selectedModelName}
 					</div>
 				</div>
 			{:else}
@@ -242,8 +261,7 @@
 								<div id="display_name" class="font-bold text-gradient rounded-md relative">
 									{models.models.find((model) => model.model_name == message.model_name)
 										?.model_display_name ||
-										models.models.find((model) => model.model_name == selectedModel)
-											?.model_display_name}
+										models.models.find((model) => model == selectedModel)?.model_display_name}
 								</div>
 								<div
 									id="model_name"
@@ -252,7 +270,7 @@
 									<div class="bg-white text-gray-800 px-1 rounded-md">
 										{models.models.find((model) => model.model_name == message.model_name)
 											?.model_name ||
-											models.models.find((model) => model.model_name == selectedModel)?.model_name}
+											models.models.find((model) => model == selectedModel)?.model_name}
 									</div>
 								</div>
 							</div>

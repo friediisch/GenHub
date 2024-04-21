@@ -301,6 +301,7 @@ pub async fn read_api_keys_from_env(data: DataState<'_>) -> Result<(), String> {
 	api_keys.insert("openai", env::var("openai").unwrap_or("".to_string()));
 	api_keys.insert("anthropic", env::var("anthropic").unwrap_or("".to_string()));
 	api_keys.insert("mistralai", env::var("mistralai").unwrap_or("".to_string()));
+	api_keys.insert("groqcloud", env::var("groqcloud").unwrap_or("".to_string()));
 	let insert_api_keys_query: &str = "UPDATE providers SET api_key=$1 WHERE provider_name = $2";
 	for (provider_name, api_key) in api_keys.iter() {
 		match sqlx::query(insert_api_keys_query)

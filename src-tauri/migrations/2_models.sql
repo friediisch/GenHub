@@ -4,7 +4,9 @@ CREATE TABLE IF NOT EXISTS models
     provider_name TEXT NOT NULL,
     model_name TEXT NOT NULL,
     model_display_name TEXT NOT NULL, 
-    show BOOLEAN DEFAULT 1
+    show BOOLEAN DEFAULT 1,
+    max_tokens INTEGER DEFAULT 4096,
+    context_window INTEGER DEFAULT 1024
 );
 
 INSERT INTO models (provider_name, model_name, model_display_name) VALUES ('openai', 'gpt-4-turbo-preview', 'GPT-4');
@@ -19,4 +21,9 @@ INSERT INTO models (provider_name, model_name, model_display_name) VALUES ('mist
 INSERT INTO models (provider_name, model_name, model_display_name) VALUES ('mistralai', 'mistral-small-latest', 'Mistral');
 INSERT INTO models (provider_name, model_name, model_display_name) VALUES ('mistralai', 'mistral-medium-latest', 'Mistral');
 INSERT INTO models (provider_name, model_name, model_display_name) VALUES ('mistralai', 'mistral-large-latest', 'Mistral');
+INSERT INTO models (provider_name, model_name, model_display_name, context_window) VALUES ('groqcloud', 'llama3-8b-8192', 'LLaMA3 8b', 8192);
+INSERT INTO models (provider_name, model_name, model_display_name, context_window) VALUES ('groqcloud', 'llama3-70b-8192', 'LLaMA3 70b', 8192);
+INSERT INTO models (provider_name, model_name, model_display_name, context_window) VALUES ('groqcloud', 'llama2-70b-4096', 'LLaMA2 70b', 4096);
+INSERT INTO models (provider_name, model_name, model_display_name, context_window) VALUES ('groqcloud', 'mixtral-8x7b-32768', 'Mixtral 8x7b', 32768);
+INSERT INTO models (provider_name, model_name, model_display_name, context_window) VALUES ('groqcloud', 'gemma-7b-it', 'Gemma 7b', 8192);
 -- INSERT INTO models (provider_name, model_name, model_display_name) VALUES ('local', 'Mistral-7B-v0.1-local', 'Mistral');
