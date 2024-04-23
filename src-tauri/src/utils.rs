@@ -225,6 +225,7 @@ pub fn escape_html_tags(input: String) -> String {
 	escaped.to_string()
 }
 
+#[allow(dead_code)]
 pub fn truncate_string(s: &str, max_chars: usize) -> &str {
 	match s.char_indices().nth(max_chars) {
 		Some((idx, _)) => &s[0..idx],

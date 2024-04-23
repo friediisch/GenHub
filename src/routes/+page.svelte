@@ -205,29 +205,32 @@
 			</button>
 			<hr class="border-gray-600" />
 			{#if modelSelectorOpen}
-				<div class="absolute z-10 bg-gray2 rounded-md p-2 mt-2 overflow-x-scroll">
-					{#each models.models as model}
-						<div
-							class="block p-2 m-2 hover:bg-gray-600 rounded-md"
-							class:bg-white={selectedModel == model}
-							class:text-black={selectedModel == model}
-							on:click={() => {
-								selectedModel = model
-								selectedModelName = selectedModel.model_name
-								modelSelectorOpen = false
-							}}
-							on:keydown={() => {
-								selectedModel = model
-								selectedModelName = selectedModel.model_name
-								modelSelectorOpen = false
-							}}
-							role="button"
-							aria-pressed="false"
-							tabindex="0"
-						>
-							{providers.find((provider) => provider.provider_name == model.provider_name)
-								?.display_name} - {model.model_name}
-						</div>{/each}
+				<div class="absolute z-10 bg-gray2 rounded-md p-2 mt-2 max-h-fit overflow-x-scroll">
+					{#each providers as provider}
+						<div class="font-bold">{provider.display_name}</div>
+						<hr class="border-gray-600" />
+						{#each models.models.filter((model) => model.provider_name == provider.provider_name) as model}
+							<div
+								class="block p-2 m-2 hover:bg-gray-600 rounded-md"
+								class:bg-white={selectedModel == model}
+								class:text-black={selectedModel == model}
+								on:click={() => {
+									selectedModel = model
+									selectedModelName = selectedModel.model_name
+									modelSelectorOpen = false
+								}}
+								on:keydown={() => {
+									selectedModel = model
+									selectedModelName = selectedModel.model_name
+									modelSelectorOpen = false
+								}}
+								role="button"
+								aria-pressed="false"
+								tabindex="0"
+							>
+								{model.model_name}
+							</div>{/each}
+					{/each}
 				</div>
 			{/if}
 		</div>

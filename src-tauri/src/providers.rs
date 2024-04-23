@@ -7,12 +7,15 @@ use tauri::command;
 use crate::{
 	data::DataState,
 	db::{insert_message, insert_message_blocks, Message, MessageHistory},
-	utils::{render_message, truncate_string, MessageBlocks},
+	utils::{render_message, MessageBlocks},
 };
+
+// use self::local::send_local_message;
+// use crate::utils::truncate_string;
 
 use self::{
 	anthropic::send_anthropic_message, groqcloud::send_groqcloud_message,
-	local::send_local_message, mistralai::send_mistralai_message, openai::send_openai_message,
+	mistralai::send_mistralai_message, openai::send_openai_message,
 };
 
 pub mod anthropic;

@@ -56,6 +56,6 @@ export type Model = { provider_name: string; model_name: string; model_display_n
 export type Models = { models: Model[] }
 export type MessageBlocks = { blocks: MessageBlock[] }
 export type MessageBlock = { id: number | null; type_: string; language: string | null; raw_content: string; rendered_content: string; copied: boolean | null }
-export type ProviderData = { provider_name: string; api_key: string; display_name: string }
 export type Message = { id: string; role: string; content: string; model_name: string; blocks: MessageBlocks | null }
 export type Chats = { chats: Chat[] }
+export type ProviderData = { provider_name: string; api_key: string; display_name: string }

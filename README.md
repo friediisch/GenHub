@@ -19,8 +19,8 @@
 - Add image generation APIs
 - Add API-support
   - Google: Add support for Google as soon as it is available in Germany
-  - Groq
   - Meta
+  - After all APIs are added, write proper abstraction
 - Add support for agents, such as SWE-Agent: https://github.com/princeton-nlp/SWE-agent
 - Include federated learning for local models
 - Add streaming API support
