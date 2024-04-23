@@ -4,12 +4,14 @@
 
 #### Pre-Release
 
-- Allow chat renaming
+- Introduce abstractions for db-queries
+  - Allow chat renaming
 - Add index column to improve query performance
 - Add a way for users to see descriptions of the models/ link to the docs
 - Create transparent error handlers for all errors
   - Allow user to re-send a message that was previously sent to a different model
 - Render markdown tables
+- Mask API-keys in Settings
 - add App to Mac App Store / Setapp / own distribution
 
 #### Post-Release

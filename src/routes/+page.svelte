@@ -160,7 +160,7 @@
 
 			{#each chats.chats as chat}
 				<div
-					class="block p-2 m-2 rounded-md
+					class="block p-2 mx-2 rounded-md
 					{chat.id === selectedChatId ? 'bg-gray-600' : 'hover:bg-gray-800'}"
 					on:click={() => {
 						inputText = ''
@@ -176,7 +176,7 @@
 				>
 					{#if chat.display_name.startsWith('unnamed_new_chat_')}
 						<div
-							class="block p-2 m-2 animate-ping rounded-full self-center self-middle size-4 bg-white opacity-100"
+							class="block p-2 mx-2 animate-ping rounded-full self-center self-middle size-4 bg-white opacity-100"
 						></div>
 					{:else}
 						{chat.display_name}
@@ -205,13 +205,16 @@
 			</button>
 			<hr class="border-gray-600" />
 			{#if modelSelectorOpen}
-				<div class="absolute z-10 bg-gray2 rounded-md p-2 mt-2 max-h-fit overflow-x-scroll">
+				<div
+					class="absolute z-10 bg-gray2 rounded-md p-2 mt-2 overflow-x-scroll"
+					style="max-height: 80%;"
+				>
 					{#each providers as provider}
 						<div class="font-bold">{provider.display_name}</div>
-						<hr class="border-gray-600" />
+						<hr class="border-gray-600 py-1" />
 						{#each models.models.filter((model) => model.provider_name == provider.provider_name) as model}
 							<div
-								class="block p-2 m-2 hover:bg-gray-600 rounded-md"
+								class="block p-2 mx-2 hover:bg-gray-600 rounded-md"
 								class:bg-white={selectedModel == model}
 								class:text-black={selectedModel == model}
 								on:click={() => {
