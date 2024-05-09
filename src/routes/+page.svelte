@@ -210,29 +210,32 @@
 					style="max-height: 80%;"
 				>
 					{#each providers as provider}
-						<div class="font-bold">{provider.display_name}</div>
-						<hr class="border-gray-600 py-1" />
-						{#each models.models.filter((model) => model.provider_name == provider.provider_name) as model}
-							<div
-								class="block p-2 mx-2 hover:bg-gray-600 rounded-md"
-								class:bg-white={selectedModel == model}
-								class:text-black={selectedModel == model}
-								on:click={() => {
-									selectedModel = model
-									selectedModelName = selectedModel.model_name
-									modelSelectorOpen = false
-								}}
-								on:keydown={() => {
-									selectedModel = model
-									selectedModelName = selectedModel.model_name
-									modelSelectorOpen = false
-								}}
-								role="button"
-								aria-pressed="false"
-								tabindex="0"
-							>
-								{model.model_name}
-							</div>{/each}
+						{#if models.models.filter((model) => model.provider_name == provider.provider_name).length > 0}
+							<div class="font-bold">{provider.display_name}</div>
+							<hr class="border-gray-600 pb-1" />
+							{#each models.models.filter((model) => model.provider_name == provider.provider_name) as model}
+								<div
+									class="block p-2 mx-2 hover:bg-gray-600 rounded-md"
+									class:bg-white={selectedModel == model}
+									class:text-black={selectedModel == model}
+									on:click={() => {
+										selectedModel = model
+										selectedModelName = selectedModel.model_name
+										modelSelectorOpen = false
+									}}
+									on:keydown={() => {
+										selectedModel = model
+										selectedModelName = selectedModel.model_name
+										modelSelectorOpen = false
+									}}
+									role="button"
+									aria-pressed="false"
+									tabindex="0"
+								>
+									{model.model_name}
+								</div>
+							{/each}
+						{/if}
 					{/each}
 				</div>
 			{/if}
