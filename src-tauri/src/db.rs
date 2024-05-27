@@ -9,7 +9,7 @@ use specta::Type;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteRow};
 use sqlx::FromRow;
-use sqlx::{Pool, Row, Sqlite, SqlitePool};
+use sqlx::{Row, Sqlite, SqlitePool};
 use std::collections::HashMap;
 use std::env;
 use std::result::Result;
@@ -66,19 +66,10 @@ pub async fn set_api_keys(providers: Vec<ProviderData>, data: DataState<'_>) -> 
 
 		// Execute the update query for the current provider
 		match query.execute(&data.db_pool).await {
-			Ok(_) => println!(
-				"Successfully updated API key for provider: {}",
-				&provider.provider_name
-			),
+			Ok(_) => println!("Successfully updated API key for provider: {}", &provider.provider_name),
 			Err(e) => {
-				eprintln!(
-					"Error updating API key for provider {}: {:?}",
-					&provider.provider_name, e
-				);
-				return Err(format!(
-					"Error updating API key for provider {}: {:?}",
-					&provider.provider_name, e
-				));
+				eprintln!("Error updating API key for provider {}: {:?}", &provider.provider_name, e);
+				return Err(format!("Error updating API key for provider {}: {:?}", &provider.provider_name, e));
 			}
 		}
 	}
@@ -163,9 +154,7 @@ pub struct Models {
 pub async fn get_models(data: DataState<'_>) -> Result<Models, String> {
 	let data = data.0.lock().await;
 	let models_query = "SELECT provider_name, model_name, model_display_name FROM models WHERE provider_name IN (SELECT provider_name FROM providers WHERE api_key != '') OR provider_name = 'local'";
-	let models_query_result = sqlx::query_as::<_, Model>(models_query)
-		.fetch_all(&data.db_pool)
-		.await;
+	let models_query_result = sqlx::query_as::<_, Model>(models_query).fetch_all(&data.db_pool).await;
 	match models_query_result {
 		Ok(models) => {
 			// println!("Fetched models from database: {:?}", models);
@@ -195,8 +184,7 @@ pub struct Chats {
 #[specta::specta]
 pub async fn get_chats(data: DataState<'_>) -> Result<Chats, String> {
 	let data = data.0.lock().await;
-	let fetch_query =
-		"SELECT id, display_name, creation_date, last_updated FROM chats WHERE archived = 'false' ORDER BY last_updated DESC";
+	let fetch_query = "SELECT id, display_name, creation_date, last_updated FROM chats WHERE archived = 'false' ORDER BY last_updated DESC";
 	let chats = Chats {
 		chats: sqlx::query_as::<_, Chat>(fetch_query)
 			.fetch_all(&data.db_pool)
@@ -211,26 +199,18 @@ pub async fn get_chats(data: DataState<'_>) -> Result<Chats, String> {
 pub async fn load_chat(chat_id: String, data: DataState<'_>) -> Result<Vec<Message>, String> {
 	let data = data.0.lock().await;
 	let fetch_query = "SELECT id, role, content, model_name FROM messages WHERE chat_id = $1";
-	let messages_result = sqlx::query_as::<_, Message>(fetch_query)
-		.bind(&chat_id)
-		.fetch_all(&data.db_pool)
-		.await;
+	let messages_result = sqlx::query_as::<_, Message>(fetch_query).bind(&chat_id).fetch_all(&data.db_pool).await;
 
 	match messages_result {
 		Ok(mut messages) => {
-			let message_blocks_fetch_query =
-				"SELECT id, type_, language, raw_content, rendered_content, copied FROM message_blocks WHERE message_id = $1";
+			let message_blocks_fetch_query = "SELECT id, type_, language, raw_content, rendered_content, copied FROM message_blocks WHERE message_id = $1";
 			for message in messages.iter_mut() {
 				let _ = match sqlx::query_as::<_, MessageBlock>(message_blocks_fetch_query)
 					.bind(&message.id)
 					.fetch_all(&data.db_pool)
 					.await
 				{
-					Ok(message_blocks) => {
-						message.blocks = Some(MessageBlocks {
-							blocks: message_blocks,
-						})
-					}
+					Ok(message_blocks) => message.blocks = Some(MessageBlocks { blocks: message_blocks }),
 					Err(err) => {
 						eprintln!("Error fetching message blocks from database: {}", err);
 					}
@@ -245,31 +225,19 @@ pub async fn load_chat(chat_id: String, data: DataState<'_>) -> Result<Vec<Messa
 	}
 }
 
-pub async fn insert_message(
-	new_message_id: &str,
-	role: &str,
-	message: &str,
-	chat_id: &str,
-	model_name: &str,
-	connection_pool: &Pool<Sqlite>,
-) {
-	let insert_message_query: &str =
-		"INSERT INTO messages (id, role, content, chat_id, model_name) VALUES ($1, $2, $3, $4, $5)";
+pub async fn insert_message(new_message_id: &str, role: &str, message: &str, chat_id: &str, model_name: &str, data: DataState<'_>) {
+	let insert_message_query: &str = "INSERT INTO messages (id, role, content, chat_id, model_name) VALUES ($1, $2, $3, $4, $5)";
 	let _ = sqlx::query(insert_message_query)
 		.bind(&new_message_id)
 		.bind(&role)
 		.bind(&message)
 		.bind(&chat_id)
 		.bind(&model_name)
-		.execute(connection_pool)
+		.execute(&data.0.lock().await.db_pool)
 		.await;
 }
 
-pub async fn insert_message_blocks(
-	message_id: &str,
-	message_blocks: &MessageBlocks,
-	connection_pool: &Pool<Sqlite>,
-) {
+pub async fn insert_message_blocks(message_id: &str, message_blocks: &MessageBlocks, data: DataState<'_>) {
 	let insert_message_blocks_query: &str =
 		"INSERT INTO message_blocks (message_id, type_, language, raw_content, rendered_content, copied) VALUES ($1, $2, $3, $4, $5, $6)";
 	for block in message_blocks.blocks.iter() {
@@ -280,7 +248,7 @@ pub async fn insert_message_blocks(
 			.bind(&block.raw_content)
 			.bind(&block.rendered_content)
 			.bind(0)
-			.execute(connection_pool)
+			.execute(&data.0.lock().await.db_pool)
 			.await;
 		match insert_message_blocks_query_result {
 			Ok(_) => (),
@@ -288,6 +256,47 @@ pub async fn insert_message_blocks(
 				eprintln!("Error inserting message blocks into database: {}", e);
 			}
 		}
+	}
+}
+
+pub async fn get_chat_display_name(chat_id: &str, data: DataState<'_>) -> Result<Option<(String,)>, sqlx::Error> {
+	let chat_display_name_query: &str = "SELECT display_name FROM chats WHERE id = $1";
+	sqlx::query_as(chat_display_name_query)
+		.bind(&chat_id)
+		.fetch_optional(&data.0.lock().await.db_pool)
+		.await
+}
+
+pub async fn insert_chat_display_name(chat_id: &str, model_name: &str, display_name: &str, data: DataState<'_>) -> Result<(), String> {
+	let insert_chat_display_name_query =
+		"INSERT INTO chats (id, model, api_key_id, display_name, archived, last_updated) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)";
+	match sqlx::query(insert_chat_display_name_query)
+		.bind(&chat_id)
+		.bind(&model_name)
+		.bind("NA")
+		.bind(&display_name)
+		.bind("false")
+		.execute(&data.0.lock().await.db_pool)
+		.await
+	{
+		Ok(_) => Ok(()),
+		Err(e) => {
+			eprintln!("Error inserting chat display name into database: {}", e);
+			Err(e.to_string())
+		}
+	}
+}
+
+pub async fn get_api_key(provider_name: &str, data: DataState<'_>) -> Result<String, String> {
+	let api_key_query: &str = "SELECT api_key FROM providers WHERE provider_name = $1";
+	match sqlx::query_as::<_, (String,)>(api_key_query)
+		.bind(&provider_name)
+		.fetch_one(&data.0.lock().await.db_pool)
+		.await
+	{
+		Ok(api_key) => Ok(api_key.0),
+		// Models should not be provided if the API key is not set, therefore throw an error
+		Err(e) => throw!("Error fetching API key for provider {}: {}", &provider_name, e),
 	}
 }
 
@@ -317,16 +326,25 @@ pub async fn read_api_keys_from_env(data: DataState<'_>) -> Result<(), String> {
 				// );
 			}
 			Err(e) => {
-				eprintln!(
-					"Error saving API key for provider {}: {}",
-					&provider_name, e
-				);
-				return Err(format!(
-					"Error saving API key for provider {}: {}",
-					&provider_name, e
-				));
+				eprintln!("Error saving API key for provider {}: {}", &provider_name, e);
+				return Err(format!("Error saving API key for provider {}: {}", &provider_name, e));
 			}
 		}
 	}
 	return Ok(());
+}
+
+pub async fn get_messages(chat_id: &str, data: DataState<'_>) -> Result<MessageHistory, String> {
+	let messages_query: &str = "SELECT id, role, content, model_name FROM messages WHERE chat_id = $1";
+	let messages = MessageHistory {
+		messages: sqlx::query_as::<_, Message>(messages_query)
+			.bind(&chat_id)
+			.fetch_all(&data.0.lock().await.db_pool)
+			.await
+			.map_err(|e| {
+				eprintln!("Error fetching messages from database: {}", e);
+				e.to_string()
+			})?,
+	};
+	return Ok(messages);
 }
