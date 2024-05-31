@@ -4,7 +4,6 @@
 
 #### Pre-Release
 
-- Allow chat renaming
 - Add index column to improve query performance
 - Add a way for users to see descriptions of the models/ link to the docs
 - Create transparent error handlers for all errors

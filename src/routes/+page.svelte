@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte'
+	import { onMount, tick } from 'svelte'
 	import * as c from '../../bindings'
 	import { v4 as uuidv4 } from 'uuid'
 	import Icon from '@iconify/svelte'
@@ -24,6 +24,9 @@
 	let models: c.Models = { models: [] }
 	let settings: c.Settings
 	let providers: c.ProviderData[] = []
+	let showContextMenu: boolean = false
+	let renamingChatId: string = ''
+	let chatRenameContainer: HTMLElement
 
 	onMount(async () => {
 		await c.readApiKeysFromEnv()
@@ -54,7 +57,7 @@
 
 	async function handleSubmit(event: Event) {
 		event.preventDefault()
-		const textarea = document.getElementById('textarea')
+		const textarea = document.getElementById('chatInputContainer')
 		const inputTextToBeSent: string = inputText
 		inputText = ''
 		textarea!.style.height = 'auto'
@@ -70,7 +73,7 @@
 	}
 
 	async function setFocus() {
-		const textarea = document.getElementById('textarea')
+		const textarea = document.getElementById('chatInputContainer')
 		textarea!.focus()
 	}
 
@@ -144,8 +147,7 @@
 			<div
 				class="p-2 m-2 rounded-md flex flex-row justify-between
 				{selectedChatId === newChatId ? 'bg-gray-600' : 'hover:bg-gray-800'}"
-				on:click={() => newChat()}
-				on:keydown={() => newChat()}
+				on:mousedown={() => newChat()}
 				role="button"
 				aria-pressed="false"
 				tabindex="0"
@@ -160,13 +162,9 @@
 
 			{#each chats.chats as chat}
 				<div
-					class="block p-2 mx-2 rounded-md
+					class="block p-2 mx-2 rounded-md group
 					{chat.id === selectedChatId ? 'bg-gray-600' : 'hover:bg-gray-800'}"
-					on:click={() => {
-						inputText = ''
-						frontendLoadChat(chat.id)
-					}}
-					on:keydown={() => {
+					on:mousedown={() => {
 						inputText = ''
 						frontendLoadChat(chat.id)
 					}}
@@ -179,7 +177,102 @@
 							class="block p-2 mx-2 animate-ping rounded-full self-center self-middle size-4 bg-white opacity-100"
 						></div>
 					{:else}
-						{chat.display_name}
+						<div class="flex flex-row justify-between">
+							{#if renamingChatId === chat.id}
+								<textarea
+									class="flex flex-grow p-2 bg-gray-600 rounded-md"
+									bind:this={chatRenameContainer}
+									bind:value={chat.display_name}
+									id="chatRenameContainer"
+									on:keydown={(e) => {
+										if (e.key === 'Enter') {
+											chat.display_name = chat.display_name.trim()
+											c.renameChat(chat.id, chat.display_name)
+											renamingChatId = ''
+										}
+									}}
+									on:blur={() => {
+										chat.display_name = chat.display_name.trim()
+										c.renameChat(chat.id, chat.display_name)
+										renamingChatId = ''
+									}}
+								/>
+							{:else}
+								<div
+									class="flex flex-grow break-all"
+									on:mousedown={() => {
+										showContextMenu = false
+									}}
+									role="button"
+									aria-pressed="false"
+									tabindex="0"
+								>
+									{chat.display_name}
+								</div>
+							{/if}
+							<div
+								on:mousedown={() => {
+									showContextMenu = !showContextMenu
+									frontendLoadChat(chat.id)
+								}}
+								role="button"
+								aria-pressed="false"
+								tabindex="0"
+							>
+								<Icon
+									icon="mdi:dots-horizontal"
+									class="mt-1 m-2 scale-125 opacity-0 group-hover:opacity-100 hover:cursor-pointer"
+									style="color: white"
+								/>
+							</div>
+						</div>
+						{#if showContextMenu && chat.id === selectedChatId}
+							<div class="flex flex-row justify-between px-8">
+								<div
+									class="bg-gray2 rounded-md p-2 mt-2"
+									on:mousedown={async () => {
+										showContextMenu = false
+										renamingChatId = chat.id
+										setTimeout(() => {
+											chatRenameContainer.focus()
+										}, 0)
+									}}
+									role="button"
+									aria-pressed="false"
+									tabindex="0"
+								>
+									Rename
+								</div>
+								<div
+									class="bg-gray2 rounded-md p-2 mt-2"
+									on:mousedown={async () => {
+										showContextMenu = false
+										c.archiveChat(chat.id)
+										chats = await c.getChats()
+										frontendLoadChat(chats.chats[0].id)
+									}}
+									role="button"
+									aria-pressed="false"
+									tabindex="0"
+								>
+									Archive
+								</div>
+								<div
+									class="bg-gray2 rounded-md p-2 mt-2"
+									on:mousedown={async () => {
+										showContextMenu = false
+										c.deleteChat(chat.id)
+										chats = await c.getChats()
+										frontendLoadChat(chats.chats[0].id)
+									}}
+									role="button"
+									aria-pressed="false"
+									tabindex="0"
+								>
+									Delete
+								</div>
+							</div>
+						{/if}
 					{/if}
 				</div>
 			{/each}
@@ -187,7 +280,7 @@
 		<hr class="mt-4" />
 		<button
 			class="flex flex-row mt-2 mb-4 p-2 rounded-md hover:bg-gray-800 hover:cursor-pointer justify-between"
-			on:click={() => (showSettings = true)}
+			on:mousedown={() => (showSettings = true)}
 		>
 			Settings
 			<Icon icon="octicon:gear-24" class="mt-1 mr-2 scale-125" style="color: white" />
@@ -198,7 +291,7 @@
 		<div class="w-full h-fit px-2">
 			<button
 				class="group text-lg px-2 py-1 align-middle hover:bg-gray2 w-fit rounded-md cursor-pointer my-2 mx-1"
-				on:click={() => (modelSelectorOpen = !modelSelectorOpen)}
+				on:mousedown={() => (modelSelectorOpen = !modelSelectorOpen)}
 			>
 				{selectedModelName}
 				<span class="icon-[octicon--chevron-down-12] scale-75 text-white"></span>
@@ -218,12 +311,7 @@
 									class="block p-2 mx-2 hover:bg-gray-600 rounded-md"
 									class:bg-white={selectedModel == model}
 									class:text-black={selectedModel == model}
-									on:click={() => {
-										selectedModel = model
-										selectedModelName = selectedModel.model_name
-										modelSelectorOpen = false
-									}}
-									on:keydown={() => {
+									on:mousedown={() => {
 										selectedModel = model
 										selectedModelName = selectedModel.model_name
 										modelSelectorOpen = false
@@ -306,7 +394,7 @@
 														{@html block.rendered_content}
 													</div>
 													<button
-														on:click={async () => {
+														on:mousedown={async () => {
 															try {
 																await navigator.clipboard.writeText(block.raw_content)
 																block.copied = true
@@ -347,7 +435,7 @@
 				class="flex bg-chat-window-gray items-center border border-gray-600 rounded-2xl px-2 py-1 my-4 w-full"
 			>
 				<textarea
-					id="textarea"
+					id="chatInputContainer"
 					class="flex-grow bg-chat-window-gray rounded-lg p-2 text-gray-200 focus:outline-none mx-2 w-full"
 					placeholder="Enter your message..."
 					rows="1"

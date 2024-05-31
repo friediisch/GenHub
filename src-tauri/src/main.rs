@@ -1,16 +1,10 @@
-#![cfg_attr(
-	all(not(debug_assertions), target_os = "windows"),
-	windows_subsystem = "windows"
-)]
+#![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
 use crate::data::{AppPaths, ArcData, Data};
 use tauri::api::{dialog, shell};
 #[cfg(target_os = "macos")]
 use tauri::AboutMetadata;
-use tauri::{
-	command, CustomMenuItem, Manager, Menu, MenuEntry, MenuItem, Submenu, Window, WindowBuilder,
-	WindowUrl,
-};
+use tauri::{command, CustomMenuItem, Manager, Menu, MenuEntry, MenuItem, Submenu, Window, WindowBuilder, WindowUrl};
 
 mod data;
 mod db;
@@ -59,6 +53,9 @@ async fn main() {
 				db::set_api_keys,
 				db::get_models,
 				db::read_api_keys_from_env,
+				db::rename_chat,
+				db::archive_chat,
+				db::delete_chat,
 				settings::get_settings,
 				settings::apply_and_save_settings
 			],
@@ -95,6 +92,9 @@ async fn main() {
 			db::set_api_keys,
 			db::get_models,
 			db::read_api_keys_from_env,
+			db::rename_chat,
+			db::archive_chat,
+			db::delete_chat,
 			settings::get_settings,
 			settings::apply_and_save_settings
 		])
@@ -124,13 +124,7 @@ async fn main() {
 					let () = msg_send![nsw, setAppearance: appearance];
 
 					// set window background color
-					let bg_color = cocoa::appkit::NSColor::colorWithRed_green_blue_alpha_(
-						cocoa::base::nil,
-						34.0 / 255.0,
-						38.0 / 255.0,
-						45.5 / 255.0,
-						1.0,
-					);
+					let bg_color = cocoa::appkit::NSColor::colorWithRed_green_blue_alpha_(cocoa::base::nil, 34.0 / 255.0, 38.0 / 255.0, 45.5 / 255.0, 1.0);
 					nsw.setBackgroundColor_(bg_color);
 				}
 			}
@@ -150,12 +144,9 @@ async fn main() {
 			MenuEntry::Submenu(Submenu::new(
 				&ctx.package_info().name,
 				Menu::with_items([
-					MenuItem::About(ctx.package_info().name.clone(), AboutMetadata::default())
-						.into(),
+					MenuItem::About(ctx.package_info().name.clone(), AboutMetadata::default()).into(),
 					MenuItem::Separator.into(),
-					CustomMenuItem::new("Preferences...", "Preferences...")
-						.accelerator("CmdOrCtrl+,")
-						.into(),
+					CustomMenuItem::new("Preferences...", "Preferences...").accelerator("CmdOrCtrl+,").into(),
 					MenuItem::Separator.into(),
 					MenuItem::Services.into(),
 					MenuItem::Separator.into(),
@@ -169,14 +160,10 @@ async fn main() {
 			MenuEntry::Submenu(Submenu::new(
 				"File",
 				Menu::with_items([
-					CustomMenuItem::new("New Chat", "New Chat")
-						.accelerator("CmdOrCtrl+N")
-						.into(),
+					CustomMenuItem::new("New Chat", "New Chat").accelerator("CmdOrCtrl+N").into(),
 					MenuItem::Separator.into(),
 					#[cfg(not(target_os = "macos"))]
-					CustomMenuItem::new("Options...", "Options...")
-						.accelerator("CmdOrCtrl+,")
-						.into(),
+					CustomMenuItem::new("Options...", "Options...").accelerator("CmdOrCtrl+,").into(),
 					#[cfg(not(target_os = "macos"))]
 					MenuItem::Separator.into(),
 					MenuItem::CloseWindow.into(),
@@ -195,19 +182,11 @@ async fn main() {
 					MenuItem::Separator.into(),
 					MenuItem::SelectAll.into(),
 					MenuItem::Separator.into(),
-					CustomMenuItem::new("Find", "Find")
-						.accelerator("CmdOrCtrl+F")
-						.into(),
+					CustomMenuItem::new("Find", "Find").accelerator("CmdOrCtrl+F").into(),
 				]),
 			)),
-			MenuEntry::Submenu(Submenu::new(
-				"View",
-				Menu::with_items([MenuItem::EnterFullScreen.into()]),
-			)),
-			MenuEntry::Submenu(Submenu::new(
-				"Window",
-				Menu::with_items([MenuItem::Minimize.into(), MenuItem::Zoom.into()]),
-			)),
+			MenuEntry::Submenu(Submenu::new("View", Menu::with_items([MenuItem::EnterFullScreen.into()]))),
+			MenuEntry::Submenu(Submenu::new("Window", Menu::with_items([MenuItem::Minimize.into(), MenuItem::Zoom.into()]))),
 			MenuEntry::Submenu(Submenu::new(
 				"Help",
 				Menu::with_items([

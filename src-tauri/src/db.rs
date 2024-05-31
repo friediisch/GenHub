@@ -348,3 +348,50 @@ pub async fn get_messages(chat_id: &str, data: DataState<'_>) -> Result<MessageH
 	};
 	return Ok(messages);
 }
+
+#[command]
+#[specta::specta]
+pub async fn rename_chat(chat_id: String, new_display_name: String, data: DataState<'_>) -> Result<(), String> {
+	let data = data.0.lock().await;
+	let rename_chat_query: &str = "UPDATE chats SET display_name = $1 WHERE id = $2";
+	match sqlx::query(rename_chat_query)
+		.bind(&new_display_name)
+		.bind(&chat_id)
+		.execute(&data.db_pool)
+		.await
+	{
+		Ok(_) => Ok(()),
+		Err(e) => {
+			eprintln!("Error renaming chat: {}", e);
+			Err(e.to_string())
+		}
+	}
+}
+
+#[command]
+#[specta::specta]
+pub async fn archive_chat(chat_id: String, data: DataState<'_>) -> Result<(), String> {
+	let data = data.0.lock().await;
+	let archive_chat_query: &str = "UPDATE chats SET archived = 'true' WHERE id = $1";
+	match sqlx::query(archive_chat_query).bind(&chat_id).execute(&data.db_pool).await {
+		Ok(_) => Ok(()),
+		Err(e) => {
+			eprintln!("Error archiving chat: {}", e);
+			Err(e.to_string())
+		}
+	}
+}
+
+#[command]
+#[specta::specta]
+pub async fn delete_chat(chat_id: String, data: DataState<'_>) -> Result<(), String> {
+	let data = data.0.lock().await;
+	let delete_chat_query: &str = "DELETE FROM chats WHERE id = $1";
+	match sqlx::query(delete_chat_query).bind(&chat_id).execute(&data.db_pool).await {
+		Ok(_) => Ok(()),
+		Err(e) => {
+			eprintln!("Error deleting chat: {}", e);
+			Err(e.to_string())
+		}
+	}
+}

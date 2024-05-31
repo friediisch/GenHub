@@ -42,6 +42,18 @@ export function readApiKeysFromEnv() {
     return invoke()<null>("read_api_keys_from_env")
 }
 
+export function renameChat(chatId: string, newDisplayName: string) {
+    return invoke()<null>("rename_chat", { chatId,newDisplayName })
+}
+
+export function archiveChat(chatId: string) {
+    return invoke()<null>("archive_chat", { chatId })
+}
+
+export function deleteChat(chatId: string) {
+    return invoke()<null>("delete_chat", { chatId })
+}
+
 export function getSettings() {
     return invoke()<Settings>("get_settings")
 }

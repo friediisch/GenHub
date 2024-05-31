@@ -13,6 +13,8 @@
 	},
 	"devDependencies": {
 		"@iconify-json/octicon": "^1.1.52",
+		"@iconify-json/lucide": "^1.1.169",
+		"@iconify-json/mdi": "^1.1.66",
 		"@iconify/svelte": "^3.1.6",
 		"@sveltejs/adapter-static": "^3.0.1",
 		"@sveltejs/kit": "^2.2.0",
@@ -50,7 +52,6 @@
 		]
 	},
 	"dependencies": {
-		"@iconify-json/lucide": "^1.1.169",
 		"@iconify/tailwind": "^0.1.4",
 		"prismjs": "^1.29.0",
 		"uuid": "^9.0.1"
