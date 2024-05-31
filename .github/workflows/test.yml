@@ -30,17 +30,35 @@ jobs:
         with:
           workspaces: ./src-tauri
 
-      - name: Install dependencies (ubuntu only)
+      - name: Install dependencies (Ubuntu only)
         if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf gobjc gnustep gnustep-devel
+
+      - name: Configure environment for GNUstep (Ubuntu only)
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          . /usr/share/GNUstep/Makefiles/GNUstep.sh
+          env | sort # Optional: to check if environment variables are set properly
+        shell: bash
+
+      - name: Install dependencies (Windows only)
+        if: matrix.platform == 'windows-latest'
+        run: |
+          choco install -y mingw
+          choco install -y python3
 
       - run: npm install
 
       - run: npm run build:web
 
-      - name: Build
-        uses: tauri-apps/tauri-action@v0
+      - name: Build (configure build environment)
+        run: |
+          if [ "${{ matrix.platform }}" = "ubuntu-latest" ]; then
+            . /usr/share/GNUstep/Makefiles/GNUstep.sh
+          fi
+          # Insert your build commands here
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

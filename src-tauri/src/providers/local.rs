@@ -77,13 +77,7 @@ impl TextGeneration {
 	fn run(&mut self, prompt: &str, sample_len: usize) -> Result<String> {
 		use std::io::Write;
 		self.tokenizer.clear();
-		let mut tokens = self
-			.tokenizer
-			.tokenizer()
-			.encode(prompt, true)
-			.map_err(E::msg)?
-			.get_ids()
-			.to_vec();
+		let mut tokens = self.tokenizer.tokenizer().encode(prompt, true).map_err(E::msg)?.get_ids().to_vec();
 		let mut answer = String::new();
 		for &t in tokens.iter() {
 			if let Some(t) = self.tokenizer.next_token(t)? {
@@ -112,11 +106,7 @@ impl TextGeneration {
 				logits
 			} else {
 				let start_at = tokens.len().saturating_sub(self.repeat_last_n);
-				candle_transformers::utils::apply_repeat_penalty(
-					&logits,
-					self.repeat_penalty,
-					&tokens[start_at..],
-				)?
+				candle_transformers::utils::apply_repeat_penalty(&logits, self.repeat_penalty, &tokens[start_at..])?
 			};
 
 			let next_token = self.logits_processor.sample(&logits)?;
@@ -297,11 +287,7 @@ assistant
 	// 		}
 	// 	}
 	// };
-	let repo = api.repo(Repo::with_revision(
-		model_id,
-		RepoType::Model,
-		args.revision,
-	));
+	let repo = api.repo(Repo::with_revision(model_id, RepoType::Model, args.revision));
 	println!("Retrieving tokenizer");
 	let tokenizer_filename = match args.tokenizer_file {
 		Some(file) => std::path::PathBuf::from(file),
@@ -312,10 +298,7 @@ assistant
 	let filenames = match args.weight_files {
 		Some(files) => {
 			println!("CHP1");
-			files
-				.split(',')
-				.map(std::path::PathBuf::from)
-				.collect::<Vec<_>>()
+			files.split(',').map(std::path::PathBuf::from).collect::<Vec<_>>()
 		}
 		None => {
 			if args.quantized {
@@ -343,16 +326,11 @@ assistant
 	let device = candle_examples::device(args.cpu)?;
 	let (model, device) = if args.quantized {
 		let filename = &filenames[0];
-		let vb =
-			candle_transformers::quantized_var_builder::VarBuilder::from_gguf(filename, &device)?;
+		let vb = candle_transformers::quantized_var_builder::VarBuilder::from_gguf(filename, &device)?;
 		let model = QMistral::new(&config, vb)?;
 		(Model::Quantized(model), device)
 	} else {
-		let dtype = if device.is_cuda() {
-			DType::BF16
-		} else {
-			DType::F32
-		};
+		let dtype = if device.is_cuda() { DType::BF16 } else { DType::F32 };
 		let vb = unsafe { VarBuilder::from_mmaped_safetensors(&filenames, dtype, &device)? };
 		let model = Mistral::new(&config, vb)?;
 		(Model::Mistral(model), device)
