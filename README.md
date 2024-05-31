@@ -4,7 +4,6 @@
 
 #### Pre-Release
 
-- Add index column to improve query performance
 - Add a way for users to see descriptions of the models/ link to the docs
 - Create transparent error handlers for all errors
   - Allow user to re-send a message that was previously sent to a different model

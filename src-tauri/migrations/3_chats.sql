@@ -9,4 +9,4 @@ CREATE TABLE IF NOT EXISTS chats
     last_updated DATETIME 
 );
 
-CREATE INDEX idx_last_updated ON chats (last_updated);
+CREATE INDEX idx_last_updated ON chats(last_updated DESC);
