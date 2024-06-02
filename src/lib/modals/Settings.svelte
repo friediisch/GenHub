@@ -60,7 +60,7 @@
 										>{provider.display_name}:</label
 									>
 									<input
-										type="text"
+										type="password"
 										id="{provider.provider_name}-api-key"
 										name="{provider.provider_name}-api-key"
 										class="text-black w-96 px-1"

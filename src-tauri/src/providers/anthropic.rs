@@ -66,20 +66,11 @@ pub async fn send_anthropic_message(body: Value, api_key: &str) -> Result<String
 
 	let result = serde_json::from_str::<AnthropicChatResponse>(&response_text);
 	let answer = match result {
-		Ok(parsed_response) => parsed_response
-			.content
-			.get(0)
-			.ok_or("Invalid response".to_string())
-			.unwrap()
-			.text
-			.clone(),
+		Ok(parsed_response) => parsed_response.content.get(0).ok_or("Invalid response".to_string()).unwrap().text.clone(),
 		Err(_e) => {
 			let error_result = serde_json::from_str::<AnthropicErrorResponse>(&response_text);
 			match error_result {
-				Ok(parsed_error) => format!(
-					"{}: {}",
-					parsed_error.error.error_type, parsed_error.error.message
-				),
+				Ok(parsed_error) => format!("{}: {}", parsed_error.error.error_type, parsed_error.error.message),
 				Err(_e) => "Unknown error".to_string(),
 			}
 		}

@@ -8,7 +8,6 @@
 - Create transparent error handlers for all errors
   - Allow user to re-send a message that was previously sent to a different model
 - Render markdown tables
-- Mask API-keys in Settings
 - add App to Mac App Store / Setapp / own distribution
 
 #### Post-Release
