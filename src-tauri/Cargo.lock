@@ -2138,6 +2138,7 @@ dependencies = [
  "chrono",
  "cocoa 0.25.0",
  "dotenv",
+ "futures",
  "hf-hub",
  "iso8601-duration",
  "macos-app-nap",

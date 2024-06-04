@@ -1,5 +1,7 @@
 use std::error::Error;
 
+use async_openai::{types::CreateCompletionRequestArgs, Client as OpenAIClient};
+use futures::StreamExt;
 use reqwest::{Client, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -56,3 +58,28 @@ pub async fn send_openai_message(body: Value, api_key: &str) -> Result<String, B
 
 	Ok(answer)
 }
+
+// pub async fn send_openai_message(body: Value, api_key: &str) -> Result<String, Box<dyn Error>> {
+// 	let client = Client::new();
+
+// 	let request = CreateCompletionRequestArgs::default()
+// 		.model("gpt-3.5-turbo-instruct")
+// 		.n(1)
+// 		.prompt("Tell me a bedtime story about Optimus Prime and Bumblebee")
+// 		.stream(true)
+// 		.max_tokens(1024_u16)
+// 		.build()?;
+
+// 	let mut stream = client.completions().create_stream(request).await?;
+
+// 	while let Some(response) = stream.next().await {
+// 		match response {
+// 			Ok(ccr) => ccr.choices.iter().for_each(|c| {
+// 				print!("{}", c.text);
+// 			}),
+// 			Err(e) => eprintln!("{}", e),
+// 		}
+// 	}
+
+// 	Ok(())
+// }

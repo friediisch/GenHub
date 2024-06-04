@@ -43,6 +43,7 @@ tokenizers = { version = "0.15" }
 anyhow = { version = "1", features = ["backtrace"] }
 minijinja = "2"
 async-openai = "0.21"
+futures = "0.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 macos-app-nap = "0.0"
